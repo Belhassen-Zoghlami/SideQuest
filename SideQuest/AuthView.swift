@@ -1,0 +1,161 @@
+import SwiftUI
+
+struct AuthView: View {
+    @State private var vm = AuthViewModel()
+
+    var body: some View {
+        @Bindable var vm = vm
+
+        ZStack {
+            Theme.surface.ignoresSafeArea()
+
+            Circle()
+                .fill(Theme.accent.opacity(0.16))
+                .frame(width: 420, height: 420)
+                .blur(radius: 90)
+                .offset(x: -150, y: -300)
+                .ignoresSafeArea()
+
+            Circle()
+                .fill(Theme.butter.opacity(0.20))
+                .frame(width: 300, height: 300)
+                .blur(radius: 90)
+                .offset(x: 165, y: -230)
+                .ignoresSafeArea()
+
+            ScrollView {
+                VStack(spacing: 0) {
+                    header
+                        .padding(.top, 56)
+
+                    fieldCard(email: $vm.email, password: $vm.password)
+                        .padding(.top, 36)
+
+                    if let error = vm.errorMessage {
+                        Label(error, systemImage: "exclamationmark.circle.fill")
+                            .font(.footnote)
+                            .foregroundStyle(Theme.accent)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.top, 12)
+                    }
+
+                    Button {
+                        Task { await vm.submit() }
+                    } label: {
+                        if vm.isLoading {
+                            ProgressView().tint(.white)
+                        } else {
+                            Text(vm.isSignUp ? "Create account" : "Sign in")
+                        }
+                    }
+                    .buttonStyle(PrimaryButtonStyle())
+                    .disabled(vm.isLoading)
+                    .padding(.top, 20)
+
+                    HStack(spacing: 4) {
+                        Text(vm.isSignUp ? "Already have an account?" : "New here?")
+                            .foregroundStyle(Theme.muted)
+                        Button(vm.isSignUp ? "Sign in" : "Create account") {
+                            vm.isSignUp.toggle()
+                            vm.errorMessage = nil
+                        }
+                        .fontWeight(.semibold)
+                        .foregroundStyle(Theme.accent)
+                    }
+                    .font(.footnote)
+                    .padding(.top, 18)
+
+                    Divider()
+                        .padding(.vertical, 24)
+
+                    Button("Use demo credentials") {
+                        vm.useDemoCredentials()
+                    }
+                    .font(.footnote.weight(.medium))
+                    .foregroundStyle(Theme.muted)
+                }
+                .padding(.horizontal, 24)
+                .padding(.bottom, 40)
+            }
+            .scrollDismissesKeyboard(.interactively)
+        }
+    }
+
+    private var header: some View {
+        VStack(spacing: 18) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: [Theme.accent, Theme.accentDeep],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .frame(width: 76, height: 76)
+                    .shadow(color: Theme.accent.opacity(0.35), radius: 18, x: 0, y: 10)
+
+                Image(systemName: "square.stack.3d.up.fill")
+                    .font(.system(size: 34, weight: .semibold))
+                    .foregroundStyle(.white)
+            }
+
+            VStack(spacing: 8) {
+                Text("SideQuest")
+                    .font(.system(size: 36, weight: .bold))
+                    .tracking(-1)
+                    .foregroundStyle(Theme.ink)
+
+                Text("Swipe on plans, not people.\nFind someone at your university who is up for the same thing you are.")
+                    .font(.subheadline)
+                    .foregroundStyle(Theme.muted)
+                    .multilineTextAlignment(.center)
+                    .lineSpacing(2)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+
+    private func fieldCard(email: Binding<String>, password: Binding<String>) -> some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 12) {
+                Image(systemName: "envelope")
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundStyle(Theme.muted)
+                    .frame(width: 20)
+
+                TextField("University email", text: email)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .keyboardType(.emailAddress)
+                    .textContentType(.emailAddress)
+                    .submitLabel(.next)
+                    .font(.body)
+            }
+            .padding(.horizontal, 16)
+            .frame(height: 52)
+
+            Divider()
+                .padding(.leading, 48)
+
+            HStack(spacing: 12) {
+                Image(systemName: "lock")
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundStyle(Theme.muted)
+                    .frame(width: 20)
+
+                SecureField("Password", text: password)
+                    .textContentType(.password)
+                    .submitLabel(.go)
+                    .font(.body)
+            }
+            .padding(.horizontal, 16)
+            .frame(height: 52)
+        }
+        .background(Theme.card, in: RoundedRectangle(cornerRadius: Theme.control, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: Theme.control, style: .continuous)
+                .stroke(Theme.hairline.opacity(0.4), lineWidth: 0.5)
+        )
+    }
+}

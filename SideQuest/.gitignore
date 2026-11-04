@@ -1,0 +1,74 @@
+
+# ==========================================
+# SideQuest - .gitignore (Xcode / iOS / Swift)
+# ==========================================
+
+# macOS Finder & System
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+._*
+.Spotlight-V100
+.Trashes
+
+# Xcode Build Outputs & Derived Data
+build/
+DerivedData/
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# Xcode User Data & Settings
+# Keep project shared settings, but ignore personal workspace states
+xcuserdata/
+*.pbxuser
+!default.pbxuser
+*.mode1v3
+!default.mode1v3
+*.mode2v3
+!default.mode2v3
+*.perspectivev3
+!default.perspectivev3
+*.xcuserstate
+*.xccheckout
+*.xcscmblueprint
+*.moved-aside
+
+# Playgrounds
+timeline.xctimeline
+playground.xcworkspace
+
+# Swift Package Manager
+.build/
+.swiftpm/
+
+# Note: For apps, Package.resolved is normally tracked to lock dependency versions.
+# Uncomment the line below if you prefer not to track it:
+# Package.resolved
+
+# Firebase & Environment Secrets
+# If pushing to a PUBLIC GitHub repository, uncomment the line below
+# to keep your Firebase project configuration private:
+# GoogleService-Info.plist
+.env
+.env.*
+
+# Dependency Managers & Automation (if used)
+# CocoaPods
+Pods/
+# Carthage
+Carthage/Build/
+Carthage/Checkouts/
+# Fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots
+fastlane/test_output
+
+# IDEs & Temporary Files
+.idea/
+.vscode/
+*.swp
+*~
