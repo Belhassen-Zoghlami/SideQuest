@@ -12,6 +12,30 @@ struct Student: Identifiable, Codable, Hashable, Sendable {
     var lastActive: Date? = nil
 }
 
+struct EventItem: Identifiable, Codable, Hashable, Sendable {
+    var id: String = UUID().uuidString
+    var hostId: String = ""
+    var hostName: String = ""
+    var hostPhotoURL: String = ""
+    var hostContact: String = ""
+    var hostMajor: String = ""
+    var hostYear: String = ""
+    var title: String = ""
+    var description: String = ""
+    var category: String = "Study"
+    var location: String = ""
+    var eventDate: Date = Date()
+    var createdAt: Date = Date()
+    var photoURL: String = ""
+}
+
+struct SwipeRecord: Codable, Hashable, Sendable {
+    var actor: String = ""
+    var eventId: String = ""
+    var action: String = "like" // "like" or "pass"
+    var createdAt: Date? = nil
+}
+
 struct Like: Codable, Hashable, Sendable {
     var actor: String = ""
     var target: String = ""
@@ -21,6 +45,9 @@ struct Like: Codable, Hashable, Sendable {
 
 struct MatchDoc: Identifiable, Codable, Hashable, Sendable {
     var id: String = ""
+    var eventId: String = ""
+    var eventTitle: String = ""
+    var eventCategory: String = ""
     var participants: [String] = []
     var contacts: [String: String] = [:]
     var names: [String: String] = [:]

@@ -27,9 +27,30 @@ final class AuthViewModel {
         isLoading = true
         do {
             if isSignUp {
-                _ = try await Auth.auth().createUser(withEmail: cleanEmail, password: password)
+                do {
+                    _ = try await Auth.auth().createUser(withEmail: cleanEmail, password: password)
+                } catch {
+                    let nsError = error as NSError
+                    if AuthErrorCode(rawValue: nsError.code) == .emailAlreadyInUse {
+                        // Attempt seamless sign in if account already exists
+                        _ = try await Auth.auth().signIn(withEmail: cleanEmail, password: password)
+                    } else {
+                        throw error
+                    }
+                }
             } else {
-                _ = try await Auth.auth().signIn(withEmail: cleanEmail, password: password)
+                do {
+                    _ = try await Auth.auth().signIn(withEmail: cleanEmail, password: password)
+                } catch {
+                    let nsError = error as NSError
+                    if AuthErrorCode(rawValue: nsError.code) == .userNotFound {
+                        // Switch to sign up
+                        isSignUp = true
+                        _ = try await Auth.auth().createUser(withEmail: cleanEmail, password: password)
+                    } else {
+                        throw error
+                    }
+                }
             }
         } catch {
             errorMessage = message(for: error)
@@ -40,7 +61,7 @@ final class AuthViewModel {
     func useDemoCredentials() {
         email = "demo@sidequest.app"
         password = "sidequest123"
-        isSignUp = true
+        errorMessage = nil
     }
 
     private func message(for error: Error) -> String {
@@ -57,7 +78,7 @@ final class AuthViewModel {
         case .userNotFound?:
             return "No account for that email yet. Switch to Create Account."
         case .networkError?:
-            return "Network problem. Check the lab Wi-Fi and try again."
+            return "Network problem. Check connection and try again."
         case .tooManyRequests?:
             return "Too many attempts. Wait a minute and try again."
         default:

@@ -3,6 +3,7 @@ import Foundation
 struct SeedPerson: Sendable {
     var student: Student
     var phone: String
+    var event: EventItem
 }
 
 enum SeedData: Sendable {
@@ -14,9 +15,25 @@ enum SeedData: Sendable {
                 year: "Year 2",
                 activities: ["Study", "Coffee", "Hackathon"],
                 quest: "Need a study buddy for Data Structures, Tuesdays at 4pm in the library",
-                photoURL: "https://i.pravatar.cc/600?img=5"
+                photoURL: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600&auto=format&fit=crop&q=80"
             ),
-            phone: "+1 555 0101"
+            phone: "+1 555 0101",
+            event: EventItem(
+                id: "demo_event_01",
+                hostId: "demo_01",
+                hostName: "Amina Kessler",
+                hostPhotoURL: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600&auto=format&fit=crop&q=80",
+                hostContact: "+1 555 0101",
+                hostMajor: "Computer Science",
+                hostYear: "Year 2",
+                title: "Data Structures Study Jam",
+                description: "Reviewing binary trees and graph traversals for next week's midterm. Coffee on me!",
+                category: "Study",
+                location: "Main Library, 2nd Floor Study Pods",
+                eventDate: Calendar.current.date(byAdding: .day, value: 1, to: Date()) ?? Date(),
+                createdAt: Date(),
+                photoURL: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600&auto=format&fit=crop&q=80"
+            )
         ),
         SeedPerson(
             student: Student(
@@ -25,9 +42,25 @@ enum SeedData: Sendable {
                 year: "Year 3",
                 activities: ["Gym", "Running"],
                 quest: "Looking for a gym partner, Tue/Thu mornings before class",
-                photoURL: "https://i.pravatar.cc/600?img=12"
+                photoURL: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600&auto=format&fit=crop&q=80"
             ),
-            phone: "+1 555 0102"
+            phone: "+1 555 0102",
+            event: EventItem(
+                id: "demo_event_02",
+                hostId: "demo_02",
+                hostName: "Tomás Ferreira",
+                hostPhotoURL: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600&auto=format&fit=crop&q=80",
+                hostContact: "+1 555 0102",
+                hostMajor: "Mechanical Engineering",
+                hostYear: "Year 3",
+                title: "Morning Upper Body & Bench Session",
+                description: "Looking for a spotter and workout partner. Intermediate lifter, aiming for a quick 1-hour session.",
+                category: "Gym",
+                location: "Campus Recreation Center (Free Weights)",
+                eventDate: Calendar.current.date(byAdding: .day, value: 2, to: Date()) ?? Date(),
+                createdAt: Date(),
+                photoURL: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600&auto=format&fit=crop&q=80"
+            )
         ),
         SeedPerson(
             student: Student(
@@ -36,9 +69,25 @@ enum SeedData: Sendable {
                 year: "Masters",
                 activities: ["Study", "Language exchange"],
                 quest: "Trying to learn Spanish before my exchange semester. Swapping English for Spanish",
-                photoURL: "https://i.pravatar.cc/600?img=32"
+                photoURL: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=600&auto=format&fit=crop&q=80"
             ),
-            phone: "+1 555 0103"
+            phone: "+1 555 0103",
+            event: EventItem(
+                id: "demo_event_03",
+                hostId: "demo_03",
+                hostName: "Priya Raman",
+                hostPhotoURL: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=600&auto=format&fit=crop&q=80",
+                hostContact: "+1 555 0103",
+                hostMajor: "Biomedical Science",
+                hostYear: "Masters",
+                title: "Spanish & English Conversational Exchange",
+                description: "Heading to Madrid next semester! Casual chat over tea: 30 minutes in Spanish, 30 minutes in English.",
+                category: "Language exchange",
+                location: "Student Union Lounge",
+                eventDate: Calendar.current.date(byAdding: .day, value: 3, to: Date()) ?? Date(),
+                createdAt: Date(),
+                photoURL: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=600&auto=format&fit=crop&q=80"
+            )
         ),
         SeedPerson(
             student: Student(
@@ -47,20 +96,25 @@ enum SeedData: Sendable {
                 year: "Year 1",
                 activities: ["Coffee", "Cowork", "Music"],
                 quest: "Anyone want to cowork at the cafe on campus Saturday morning?",
-                photoURL: "https://i.pravatar.cc/600?img=15"
+                photoURL: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=600&auto=format&fit=crop&q=80"
             ),
-            phone: "+1 555 0104"
-        ),
-        SeedPerson(
-            student: Student(
-                displayName: "Lena Okonkwo",
-                major: "Architecture",
-                year: "Year 4",
-                activities: ["Study", "Cowork"],
-                quest: "All-nighter in the studio this Friday. Someone bring snacks and moral support",
-                photoURL: "https://i.pravatar.cc/600?img=45"
-            ),
-            phone: "+1 555 0105"
+            phone: "+1 555 0104",
+            event: EventItem(
+                id: "demo_event_04",
+                hostId: "demo_04",
+                hostName: "Noah Whitfield",
+                hostPhotoURL: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=600&auto=format&fit=crop&q=80",
+                hostContact: "+1 555 0104",
+                hostMajor: "Economics",
+                hostYear: "Year 1",
+                title: "Saturday Deep Work & Coffee",
+                description: "Pomodoro study sprint at the artisan cafe. Focused work blocks with good playlist and coffee breaks.",
+                category: "Coffee",
+                location: "Brew & Bean Campus Cafe",
+                eventDate: Calendar.current.date(byAdding: .day, value: 4, to: Date()) ?? Date(),
+                createdAt: Date(),
+                photoURL: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=600&auto=format&fit=crop&q=80"
+            )
         ),
         SeedPerson(
             student: Student(
@@ -69,9 +123,25 @@ enum SeedData: Sendable {
                 year: "Year 3",
                 activities: ["Hackathon", "Gaming", "Coffee"],
                 quest: "Building a small app for the campus hackathon, need a designer or a second dev",
-                photoURL: "https://i.pravatar.cc/600?img=8"
+                photoURL: "https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=600&auto=format&fit=crop&q=80"
             ),
-            phone: "+1 555 0106"
+            phone: "+1 555 0106",
+            event: EventItem(
+                id: "demo_event_05",
+                hostId: "demo_05",
+                hostName: "Marco Bianchi",
+                hostPhotoURL: "https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=600&auto=format&fit=crop&q=80",
+                hostContact: "+1 555 0106",
+                hostMajor: "Computer Science",
+                hostYear: "Year 3",
+                title: "Campus Hackathon Team Ideation",
+                description: "Looking to form a team of 3-4 for this weekend's hackathon! Need someone into SwiftUI, Flutter, or UI Design.",
+                category: "Hackathon",
+                location: "Innovation Lab (Room 102)",
+                eventDate: Calendar.current.date(byAdding: .day, value: 2, to: Date()) ?? Date(),
+                createdAt: Date(),
+                photoURL: "https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=600&auto=format&fit=crop&q=80"
+            )
         ),
         SeedPerson(
             student: Student(
@@ -80,75 +150,25 @@ enum SeedData: Sendable {
                 year: "Year 2",
                 activities: ["Running", "Coffee"],
                 quest: "Training for the campus 5k. Looking for a slow-paced running partner",
-                photoURL: "https://i.pravatar.cc/600?img=20"
+                photoURL: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=600&auto=format&fit=crop&q=80"
             ),
-            phone: "+1 555 0107"
-        ),
-        SeedPerson(
-            student: Student(
-                displayName: "Daniel Mbeki",
-                major: "Mathematics",
-                year: "Year 1",
-                activities: ["Study", "Gaming"],
-                quest: "Struggling with linear algebra. Would trade tutoring for coffee",
-                photoURL: "https://i.pravatar.cc/600?img=33"
-            ),
-            phone: "+1 555 0108"
-        ),
-        SeedPerson(
-            student: Student(
-                displayName: "Chloé Martin",
-                major: "Graphic Design",
-                year: "Year 2",
-                activities: ["Coffee", "Cowork", "Music"],
-                quest: "Looking for someone to sketch with at the art building, any afternoon",
-                photoURL: "https://i.pravatar.cc/600?img=24"
-            ),
-            phone: "+1 555 0109"
-        ),
-        SeedPerson(
-            student: Student(
-                displayName: "Ethan Park",
-                major: "Electrical Engineering",
-                year: "Year 4",
-                activities: ["Study", "Gym", "Hackathon"],
-                quest: "Final year project on embedded systems. Would love a second pair of eyes",
-                photoURL: "https://i.pravatar.cc/600?img=52"
-            ),
-            phone: "+1 555 0110"
-        ),
-        SeedPerson(
-            student: Student(
-                displayName: "Isabelle Ng",
-                major: "International Relations",
-                year: "Masters",
-                activities: ["Study", "Coffee", "Language exchange"],
-                quest: "Writing my thesis and going slightly mad. Accountability buddy needed",
-                photoURL: "https://i.pravatar.cc/600?img=26"
-            ),
-            phone: "+1 555 0111"
-        ),
-        SeedPerson(
-            student: Student(
-                displayName: "Youssef Haddad",
-                major: "Civil Engineering",
-                year: "Year 3",
-                activities: ["Gym", "Cooking"],
-                quest: "Meal prep Sunday. Looking to split groceries and cook in the shared kitchen",
-                photoURL: "https://i.pravatar.cc/600?img=51"
-            ),
-            phone: "+1 555 0112"
-        ),
-        SeedPerson(
-            student: Student(
-                displayName: "Hannah Weiss",
-                major: "Chemistry",
-                year: "Year 2",
-                activities: ["Study", "Running"],
-                quest: "Lab report due Friday, need someone to complain with at the library",
-                photoURL: "https://i.pravatar.cc/600?img=44"
-            ),
-            phone: "+1 555 0113"
+            phone: "+1 555 0107",
+            event: EventItem(
+                id: "demo_event_06",
+                hostId: "demo_06",
+                hostName: "Sofia Lindqvist",
+                hostPhotoURL: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=600&auto=format&fit=crop&q=80",
+                hostContact: "+1 555 0107",
+                hostMajor: "Psychology",
+                hostYear: "Year 2",
+                title: "Sunset 5K Campus Loop",
+                description: "Easy 6:00 min/km pace around the lake trail. All running levels welcome, smoothie afterwards!",
+                category: "Running",
+                location: "North Gate Fountain Entrance",
+                eventDate: Calendar.current.date(byAdding: .day, value: 1, to: Date()) ?? Date(),
+                createdAt: Date(),
+                photoURL: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=600&auto=format&fit=crop&q=80"
+            )
         ),
         SeedPerson(
             student: Student(
@@ -156,21 +176,26 @@ enum SeedData: Sendable {
                 major: "Business",
                 year: "Year 1",
                 activities: ["Cowork", "Gaming", "Coffee"],
-                quest: "New on campus and know nobody. Show me where the good coffee is",
-                photoURL: "https://i.pravatar.cc/600?img=13"
+                quest: "Smash Bros / Mario Kart tournament in the dorm commons tonight",
+                photoURL: "https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=600&auto=format&fit=crop&q=80"
             ),
-            phone: "+1 555 0114"
-        ),
-        SeedPerson(
-            student: Student(
-                displayName: "Rania Aziz",
-                major: "Physics",
-                year: "PhD",
-                activities: ["Study", "Music", "Coffee"],
-                quest: "Quantum mechanics study group, Thursdays. Tea provided, despair optional",
-                photoURL: "https://i.pravatar.cc/600?img=31"
-            ),
-            phone: "+1 555 0115"
+            phone: "+1 555 0114",
+            event: EventItem(
+                id: "demo_event_07",
+                hostId: "demo_07",
+                hostName: "Lucas Almeida",
+                hostPhotoURL: "https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=600&auto=format&fit=crop&q=80",
+                hostContact: "+1 555 0114",
+                hostMajor: "Business",
+                hostYear: "Year 1",
+                title: "Super Smash Bros & Mario Kart Night",
+                description: "Casual gaming tournament on the projector. Bring your Switch controller if you have one! Snacks provided.",
+                category: "Gaming",
+                location: "Dorm Hall West Commons",
+                eventDate: Calendar.current.date(byAdding: .day, value: 3, to: Date()) ?? Date(),
+                createdAt: Date(),
+                photoURL: "https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=600&auto=format&fit=crop&q=80"
+            )
         )
     ]
 }

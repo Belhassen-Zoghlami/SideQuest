@@ -4,7 +4,9 @@ import Observation
 @MainActor
 @Observable
 final class DeckViewModel {
-    var queue: [Student] = []
+    var queue: [EventItem] = []
+    var allEvents: [EventItem] = []
+    var selectedCategory: String? = nil
     var isLoading = true
     var isSwiping = false
     var errorMessage: String?
@@ -13,19 +15,32 @@ final class DeckViewModel {
 
     private let service = FirebaseService.shared
 
+    var filteredQueue: [EventItem] {
+        if let selected = selectedCategory, !selected.isEmpty, selected != "All" {
+            return queue.filter { $0.category == selected }
+        }
+        return queue
+    }
+
     func load(me: Student?) async {
         guard let me else { return }
         isLoading = true
         errorMessage = nil
 
         do {
-            async let allProfiles = service.candidates()
-            async let likedIDs = service.likedTargets(by: me.id)
-            let (profiles, liked) = try await (allProfiles, likedIDs)
+            async let allFetched = service.fetchEvents(excludingHostUID: me.id)
+            async let swipedIDs = service.swipedEventIDs(by: me.id)
+            let (events, swiped) = try await (allFetched, swipedIDs)
 
-            queue = profiles
-                .filter { $0.id != me.id && !liked.contains($0.id) }
-                .shuffled()
+            let unswiped = events.filter { !swiped.contains($0.id) }
+
+            // Prioritize events that match user's chosen interests
+            let myInterests = Set(me.activities)
+            let matching = unswiped.filter { myInterests.contains($0.category) }.shuffled()
+            let others = unswiped.filter { !myInterests.contains($0.category) }.shuffled()
+
+            allEvents = matching + others
+            queue = allEvents
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -33,22 +48,27 @@ final class DeckViewModel {
         isLoading = false
     }
 
-    func swipe(_ student: Student, liked: Bool, me: Student, phone: String) async {
+    func setCategoryFilter(_ category: String?) {
+        selectedCategory = category
+    }
+
+    func swipe(_ event: EventItem, liked: Bool, me: Student, phone: String) async {
         guard !isSwiping else { return }
         isSwiping = true
-        queue.removeAll { $0.id == student.id }
+
+        queue.removeAll { $0.id == event.id }
+        allEvents.removeAll { $0.id == event.id }
 
         do {
-            try await service.saveLike(from: me, to: student, phone: phone)
+            let resultMatch = try await service.swipeEvent(
+                event: event,
+                swiper: me,
+                swiperPhone: phone,
+                liked: liked
+            )
 
-            if liked, let reverse = try await service.reverseLike(me: me, target: student) {
-                let created = try await service.createMatch(
-                    me: me,
-                    target: student,
-                    theirPhone: reverse.actorPhone,
-                    myPhone: phone
-                )
-                match = created
+            if liked, let resultMatch {
+                match = resultMatch
             }
         } catch {
             errorMessage = error.localizedDescription
@@ -60,7 +80,7 @@ final class DeckViewModel {
     func seedDemoData(me: Student) async {
         isSeeding = true
         do {
-            _ = try await service.seedDemoStudents(for: me)
+            _ = try await service.seedDemoEvents(for: me)
             await load(me: me)
         } catch {
             errorMessage = error.localizedDescription

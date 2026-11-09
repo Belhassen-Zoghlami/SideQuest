@@ -3,6 +3,7 @@ import SwiftUI
 struct DeckView: View {
     @Environment(AppState.self) private var appState
     @State private var vm = DeckViewModel()
+    @State private var showCreateEvent = false
 
     var onSeeMatches: @MainActor @Sendable () -> Void
 
@@ -20,23 +21,60 @@ struct DeckView: View {
                 .ignoresSafeArea()
                 .allowsHitTesting(false)
 
-                if vm.isLoading {
-                    ProgressView("Finding quests…")
-                        .tint(Theme.accent)
-                } else if let me = appState.myProfile {
-                    if vm.queue.isEmpty {
-                        emptyState(me: me)
+                VStack(spacing: 0) {
+                    categoryFilterBar
+                        .padding(.top, 4)
+                        .padding(.bottom, 8)
+
+                    if vm.isLoading {
+                        Spacer()
+                        ProgressView("Finding campus events…")
+                            .tint(Theme.accent)
+                        Spacer()
+                    } else if let me = appState.myProfile {
+                        if vm.filteredQueue.isEmpty {
+                            Spacer()
+                            emptyState(me: me)
+                            Spacer()
+                        } else {
+                            deck(me: me)
+                        }
                     } else {
-                        deck(me: me)
+                        Spacer()
+                        ContentUnavailableView("Profile unavailable", systemImage: "person.crop.circle.badge.exclamationmark")
+                        Spacer()
                     }
-                } else {
-                    ContentUnavailableView("Profile unavailable", systemImage: "person.crop.circle.badge.exclamationmark")
                 }
             }
-            .navigationTitle("Discover")
-            .navigationBarTitleDisplayMode(.large)
+            .navigationTitle("Discover Events")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        showCreateEvent = true
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "plus")
+                                .font(.system(size: 14, weight: .bold))
+                            Text("Post Event")
+                                .font(.subheadline.weight(.semibold))
+                        }
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 5)
+                        .background(Theme.accent, in: Capsule())
+                        .foregroundStyle(.white)
+                    }
+                }
+            }
             .task {
                 await vm.load(me: appState.myProfile)
+            }
+            .sheet(isPresented: $showCreateEvent) {
+                CreateEventView {
+                    Task {
+                        await vm.load(me: appState.myProfile)
+                    }
+                }
             }
             .overlay {
                 if let match = vm.match, let uid = appState.myProfile?.id {
@@ -70,81 +108,124 @@ struct DeckView: View {
         )
     }
 
+    private var categoryFilterBar: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                categoryPill(title: "All", isSelected: vm.selectedCategory == nil || vm.selectedCategory == "All") {
+                    vm.setCategoryFilter(nil)
+                }
+
+                ForEach(ActivityCatalog.all, id: \.self) { category in
+                    categoryPill(title: category, isSelected: vm.selectedCategory == category) {
+                        vm.setCategoryFilter(category)
+                    }
+                }
+            }
+            .padding(.horizontal, 16)
+        }
+    }
+
+    private func categoryPill(title: String, isSelected: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(title)
+                .font(.caption.weight(.semibold))
+                .padding(.horizontal, 14)
+                .padding(.vertical, 7)
+                .background(isSelected ? Theme.accent : Theme.fill, in: Capsule())
+                .foregroundStyle(isSelected ? Color.white : Theme.ink)
+        }
+        .buttonStyle(.plain)
+        .animation(.easeOut(duration: 0.15), value: isSelected)
+    }
+
     private func deck(me: Student) -> some View {
-        VStack(spacing: 16) {
+        let events = Array(vm.filteredQueue.prefix(3))
+
+        return VStack(spacing: 16) {
             ZStack {
-                ForEach(Array(vm.queue.prefix(3).indices).reversed(), id: \.self) { index in
-                    let student = vm.queue[index]
-                    SwipeCardView(student: student) { liked in
+                ForEach(Array(events.enumerated()).reversed(), id: \.element.id) { index, event in
+                    SwipeCardView(event: event) { liked in
                         Task {
-                            await vm.swipe(student, liked: liked, me: me, phone: appState.myPhone)
+                            await vm.swipe(event, liked: liked, me: me, phone: appState.myPhone)
                         }
                     }
-                    .id(student.id)
                     .scaleEffect(1 - CGFloat(index) * 0.045)
                     .offset(y: CGFloat(index) * 12)
                     .allowsHitTesting(index == 0)
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .padding(.top, 6)
+            .padding(.top, 4)
 
-            HStack(spacing: 28) {
+            HStack(spacing: 36) {
                 Button {
-                    guard let student = vm.queue.first else { return }
+                    guard let topEvent = vm.filteredQueue.first else { return }
                     Task {
-                        await vm.swipe(student, liked: false, me: me, phone: appState.myPhone)
+                        await vm.swipe(topEvent, liked: false, me: me, phone: appState.myPhone)
                     }
                 } label: {
                     Image(systemName: "xmark")
-                        .font(.system(size: 21, weight: .semibold))
+                        .font(.system(size: 22, weight: .bold))
                         .foregroundStyle(Theme.red)
                 }
                 .buttonStyle(CircleIconButtonStyle())
                 .accessibilityLabel("Pass")
 
                 Button {
-                    guard let student = vm.queue.first else { return }
+                    guard let topEvent = vm.filteredQueue.first else { return }
                     Task {
-                        await vm.swipe(student, liked: true, me: me, phone: appState.myPhone)
+                        await vm.swipe(topEvent, liked: true, me: me, phone: appState.myPhone)
                     }
                 } label: {
                     Image(systemName: "heart.fill")
-                        .font(.system(size: 22, weight: .semibold))
+                        .font(.system(size: 24, weight: .bold))
                         .foregroundStyle(Theme.green)
                 }
                 .buttonStyle(CircleIconButtonStyle())
-                .accessibilityLabel("Interested")
+                .accessibilityLabel("Join Event")
             }
-            .padding(.bottom, 10)
+            .padding(.bottom, 12)
         }
         .padding(.horizontal, 16)
     }
 
     private func emptyState(me: Student) -> some View {
         ContentUnavailableView {
-            Label("No more quests", systemImage: "sparkles")
+            Label("No events right now", systemImage: "sparkles")
         } description: {
-            Text("You have seen every student in the deck. Load demo students to keep testing.")
+            Text("You've seen all events in this category. Post your own event or load demo events to test!")
         } actions: {
-            Button {
-                Task { await vm.seedDemoData(me: me) }
-            } label: {
-                if vm.isSeeding {
-                    ProgressView().tint(.white)
-                } else {
-                    Text("Load demo students")
+            VStack(spacing: 12) {
+                Button {
+                    showCreateEvent = true
+                } label: {
+                    HStack {
+                        Image(systemName: "plus")
+                        Text("Create an Event")
+                    }
                 }
-            }
-            .buttonStyle(PrimaryButtonStyle())
-            .frame(maxWidth: 260)
-            .disabled(vm.isSeeding)
+                .buttonStyle(PrimaryButtonStyle())
+                .frame(maxWidth: 240)
 
-            Button("Refresh deck") {
-                Task { await vm.load(me: me) }
+                Button {
+                    Task { await vm.seedDemoData(me: me) }
+                } label: {
+                    if vm.isSeeding {
+                        ProgressView().tint(.white)
+                    } else {
+                        Text("Load demo events")
+                    }
+                }
+                .buttonStyle(SecondaryButtonStyle())
+                .frame(maxWidth: 240)
+                .disabled(vm.isSeeding)
+
+                Button("Refresh") {
+                    Task { await vm.load(me: me) }
+                }
+                .font(.footnote.weight(.medium))
+                .foregroundStyle(Theme.muted)
             }
-            .font(.footnote.weight(.medium))
-            .foregroundStyle(Theme.muted)
         }
         .tint(Theme.accent)
     }

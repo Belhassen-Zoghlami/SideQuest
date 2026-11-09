@@ -29,10 +29,13 @@ struct MatchesView: View {
             }
             .navigationTitle("Matches")
             .navigationBarTitleDisplayMode(.large)
-            .task {
+            .task(id: appState.myProfile?.id) {
                 if let uid = appState.myProfile?.id {
                     vm.start(uid: uid)
                 }
+            }
+            .onDisappear {
+                vm.stop()
             }
         }
     }
@@ -47,20 +50,19 @@ struct MatchesView: View {
                 size: 52
             )
 
-            VStack(alignment: .leading, spacing: 3) {
-                Text(match.name(for: otherUID))
+            VStack(alignment: .leading, spacing: 4) {
+                Text(match.eventTitle.isEmpty ? "Event with \(match.name(for: otherUID))" : match.eventTitle)
                     .font(.headline)
                     .foregroundStyle(Theme.ink)
+                    .lineLimit(1)
 
-                if match.sharedActivities.isEmpty {
-                    Text(match.quest(for: otherUID))
+                HStack(spacing: 6) {
+                    if !match.eventCategory.isEmpty {
+                        TagChip(title: match.eventCategory)
+                    }
+                    Text("with \(match.name(for: otherUID))")
                         .font(.subheadline)
                         .foregroundStyle(Theme.muted)
-                        .lineLimit(1)
-                } else {
-                    Text("Both up for \(match.sharedActivities.joined(separator: ", "))")
-                        .font(.subheadline)
-                        .foregroundStyle(Theme.accent)
                         .lineLimit(1)
                 }
             }
@@ -72,9 +74,9 @@ struct MatchesView: View {
 
     private var emptyState: some View {
         ContentUnavailableView {
-            Label("No matches yet", systemImage: "heart")
+            Label("No matches yet", systemImage: "sparkles")
         } description: {
-            Text("Swipe right on someone whose quest you would join. If they swiped right too, they show up here with their number.")
+            Text("Swipe right on events you want to join. Matching instantly shares contact details so you can meet up!")
         }
         .tint(Theme.accent)
     }

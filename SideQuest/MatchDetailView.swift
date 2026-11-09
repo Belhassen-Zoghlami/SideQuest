@@ -25,85 +25,78 @@ struct MatchDetailView: View {
 
     var body: some View {
         ScrollView {
-            VStack(spacing: 24) {
-                header
+            VStack(spacing: 20) {
+                eventCard
 
-                if !match.sharedActivities.isEmpty {
-                    sharedCard
-                }
+                partnerCard
 
                 contactCard
 
                 Spacer(minLength: 12)
             }
             .padding(.horizontal, 20)
-            .padding(.top, 8)
+            .padding(.top, 12)
             .padding(.bottom, 40)
         }
         .background(Theme.surface.ignoresSafeArea())
-        .navigationTitle("Match")
+        .navigationTitle("Match Details")
         .navigationBarTitleDisplayMode(.inline)
     }
 
-    private var header: some View {
-        VStack(spacing: 12) {
-            AvatarView(
-                name: otherName,
-                urlString: match.photo(for: otherUID),
-                size: 112
-            )
-            .overlay(
-                Circle().strokeBorder(
-                    LinearGradient(
-                        colors: [Theme.accent, Theme.butter],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ),
-                    lineWidth: 4
-                )
-            )
-            .shadow(color: Theme.accent.opacity(0.22), radius: 18, x: 0, y: 9)
-
-            VStack(spacing: 6) {
-                Text(otherName)
-                    .font(.title2.weight(.bold))
-                    .foregroundStyle(Theme.ink)
-
-                if !match.quest(for: otherUID).isEmpty {
-                    Text("\u{201C}\(match.quest(for: otherUID))\u{201D}")
-                        .font(.callout)
-                        .foregroundStyle(Theme.muted)
-                        .multilineTextAlignment(.center)
-                        .lineSpacing(2)
-                        .padding(.horizontal, 8)
+    private var eventCard: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                if !match.eventCategory.isEmpty {
+                    TagChip(title: match.eventCategory)
                 }
+                Spacer()
+                Text("MATCHED EVENT")
+                    .font(.caption2.weight(.bold))
+                    .foregroundStyle(Theme.muted)
             }
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.top, 12)
-    }
 
-    private var sharedCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            SectionLabel(title: "You're both up for")
+            Text(match.eventTitle.isEmpty ? "Campus Event" : match.eventTitle)
+                .font(.title2.weight(.bold))
+                .foregroundStyle(Theme.ink)
 
-            LazyVGrid(
-                columns: [GridItem(.adaptive(minimum: 90), spacing: 8)],
-                alignment: .leading,
-                spacing: 8
-            ) {
-                ForEach(match.sharedActivities, id: \.self) { activity in
-                    TagChip(title: activity)
-                }
+            if !match.quest(for: otherUID).isEmpty {
+                Text(match.quest(for: otherUID))
+                    .font(.body)
+                    .foregroundStyle(Theme.muted)
+                    .lineSpacing(2)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .cardSurface()
     }
 
+    private var partnerCard: some View {
+        HStack(spacing: 16) {
+            AvatarView(
+                name: otherName,
+                urlString: match.photo(for: otherUID),
+                size: 64
+            )
+            .overlay(Circle().strokeBorder(Theme.accent, lineWidth: 2))
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(otherName)
+                    .font(.title3.weight(.bold))
+                    .foregroundStyle(Theme.ink)
+
+                Text("Partner on this quest")
+                    .font(.subheadline)
+                    .foregroundStyle(Theme.muted)
+            }
+
+            Spacer()
+        }
+        .cardSurface()
+    }
+
     private var contactCard: some View {
         VStack(alignment: .leading, spacing: 14) {
-            SectionLabel(title: "Contact")
+            SectionLabel(title: "Contact Information")
 
             if otherPhone.isEmpty {
                 Text("They haven't shared a number yet.")

@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct SwipeCardView: View {
-    let student: Student
+    let event: EventItem
     var onSwipe: @MainActor @Sendable (Bool) -> Void
 
     @State private var offset: CGSize = .zero
@@ -13,28 +13,39 @@ struct SwipeCardView: View {
     var body: some View {
         GeometryReader { geo in
             ZStack(alignment: .bottomLeading) {
-                photo
+                backgroundMedia
 
                 LinearGradient(
-                    colors: [.clear, .black.opacity(0.08), .black.opacity(0.82)],
+                    colors: [
+                        .black.opacity(0.15),
+                        .black.opacity(0.40),
+                        .black.opacity(0.92)
+                    ],
                     startPoint: .top,
                     endPoint: .bottom
                 )
 
-                details
-                    .padding(22)
+                VStack(alignment: .leading, spacing: 0) {
+                    topChips
+                        .padding(20)
+
+                    Spacer()
+
+                    eventDetails
+                        .padding(22)
+                }
 
                 stamps
             }
             .frame(width: geo.size.width, height: geo.size.height)
-            .background(Theme.muted.opacity(0.12))
+            .background(Theme.card)
             .clipShape(RoundedRectangle(cornerRadius: radius, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: radius, style: .continuous)
-                    .stroke(Color.white.opacity(0.35), lineWidth: 0.5)
+                    .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
             )
             .shadow(color: Theme.cardShadow, radius: 20, x: 0, y: 10)
-            .shadow(color: Theme.accent.opacity(0.10), radius: 34, x: 0, y: 18)
+            .shadow(color: Theme.accent.opacity(0.12), radius: 34, x: 0, y: 18)
             .offset(x: offset.width, y: offset.height * 0.25)
             .rotationEffect(.degrees(Double(offset.width / 22)))
             .animation(.spring(response: 0.34, dampingFraction: 0.78), value: offset)
@@ -71,70 +82,117 @@ struct SwipeCardView: View {
             }
     }
 
-    private var photo: some View {
+    private var backgroundMedia: some View {
         Group {
-            if let url = URL(string: student.photoURL), !student.photoURL.isEmpty {
+            if let url = URL(string: event.photoURL), !event.photoURL.isEmpty {
                 AsyncImage(url: url) { phase in
                     switch phase {
                     case .success(let image):
                         image.resizable().scaledToFill()
                     default:
-                        photoPlaceholder
+                        placeholderBackground
                     }
                 }
             } else {
-                photoPlaceholder
+                placeholderBackground
             }
         }
     }
 
-    private var photoPlaceholder: some View {
+    private var placeholderBackground: some View {
         ZStack {
             LinearGradient(
-                colors: [Theme.accent, Theme.accentSoft],
+                colors: [categoryColor, categoryColor.opacity(0.65), Theme.accentDeep],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
-            Text(initials)
-                .font(.system(size: 108, weight: .bold))
-                .foregroundStyle(.white.opacity(0.9))
+            Image(systemName: categoryIcon)
+                .font(.system(size: 140))
+                .foregroundStyle(.white.opacity(0.12))
         }
     }
 
-    private var details: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(student.displayName)
-                .font(.system(size: 32, weight: .bold))
-                .tracking(-0.5)
+    private var topChips: some View {
+        HStack(spacing: 8) {
+            HStack(spacing: 5) {
+                Image(systemName: categoryIcon)
+                    .font(.caption.weight(.bold))
+                Text(event.category)
+                    .font(.caption.weight(.bold))
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 6)
+            .background(.ultraThinMaterial, in: Capsule())
+            .overlay(Capsule().stroke(Color.white.opacity(0.3), lineWidth: 0.5))
+            .foregroundStyle(.white)
+
+            Spacer()
+
+            HStack(spacing: 5) {
+                Image(systemName: "calendar")
+                    .font(.caption.weight(.semibold))
+                Text(formattedDate)
+                    .font(.caption.weight(.semibold))
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 6)
+            .background(.black.opacity(0.4), in: Capsule())
+            .foregroundStyle(.white)
+        }
+    }
+
+    private var eventDetails: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(event.title)
+                .font(.system(size: 28, weight: .bold))
+                .tracking(-0.4)
                 .foregroundStyle(.white)
-                .lineLimit(1)
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
 
-            Text("\(student.year) · \(student.major)")
-                .font(.subheadline.weight(.medium))
-                .foregroundStyle(.white.opacity(0.9))
-                .lineLimit(1)
+            HStack(spacing: 6) {
+                Image(systemName: "mappin.and.ellipse")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Theme.butter)
 
-            Text(student.quest)
+                Text(event.location)
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(.white.opacity(0.92))
+                    .lineLimit(1)
+            }
+
+            Text(event.description)
                 .font(.callout)
-                .foregroundStyle(.white.opacity(0.95))
+                .foregroundStyle(.white.opacity(0.92))
                 .lineSpacing(2)
                 .lineLimit(3)
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.top, 2)
 
-            if !student.activities.isEmpty {
-                HStack(spacing: 6) {
-                    ForEach(student.activities.prefix(3), id: \.self) { activity in
-                        Text(activity)
-                            .font(.caption.weight(.semibold))
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 5)
-                            .background(.white.opacity(0.18), in: Capsule())
-                            .overlay(Capsule().stroke(.white.opacity(0.18), lineWidth: 0.5))
-                            .foregroundStyle(.white)
+            Divider()
+                .background(Color.white.opacity(0.2))
+                .padding(.vertical, 4)
+
+            // Host badge
+            HStack(spacing: 10) {
+                AvatarView(name: event.hostName, urlString: event.hostPhotoURL, size: 40)
+                    .overlay(Circle().stroke(Color.white.opacity(0.4), lineWidth: 1))
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Hosted by \(event.hostName)")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.white)
+                        .lineLimit(1)
+
+                    if !event.hostMajor.isEmpty {
+                        Text("\(event.hostYear) • \(event.hostMajor)")
+                            .font(.caption)
+                            .foregroundStyle(.white.opacity(0.8))
+                            .lineLimit(1)
                     }
                 }
-                .padding(.top, 4)
+
+                Spacer()
             }
         }
     }
@@ -142,12 +200,12 @@ struct SwipeCardView: View {
     private var stamps: some View {
         VStack {
             HStack {
-                Text("NOPE")
+                Text("PASS")
                     .font(.system(size: 26, weight: .heavy))
                     .tracking(2)
                     .foregroundStyle(Theme.red)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 5)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
                     .overlay(
                         RoundedRectangle(cornerRadius: 8, style: .continuous)
                             .stroke(Theme.red, lineWidth: 3)
@@ -157,12 +215,12 @@ struct SwipeCardView: View {
 
                 Spacer()
 
-                Text("IN")
+                Text("JOIN")
                     .font(.system(size: 26, weight: .heavy))
                     .tracking(2)
                     .foregroundStyle(Theme.green)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 5)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
                     .overlay(
                         RoundedRectangle(cornerRadius: 8, style: .continuous)
                             .stroke(Theme.green, lineWidth: 3)
@@ -184,9 +242,44 @@ struct SwipeCardView: View {
         Double(max(0, offset.width / 120))
     }
 
-    private var initials: String {
-        let parts = student.displayName.split(separator: " ").prefix(2)
-        let letters = parts.compactMap { $0.first }.map { String($0) }.joined()
-        return letters.isEmpty ? "?" : letters.uppercased()
+    private var formattedDate: String {
+        let formatter = DateFormatter()
+        if Calendar.current.isDateInToday(event.eventDate) {
+            formatter.dateFormat = "'Today,' h:mm a"
+        } else if Calendar.current.isDateInTomorrow(event.eventDate) {
+            formatter.dateFormat = "'Tomorrow,' h:mm a"
+        } else {
+            formatter.dateFormat = "MMM d, h:mm a"
+        }
+        return formatter.string(from: event.eventDate)
+    }
+
+    private var categoryColor: Color {
+        switch event.category {
+        case "Study": return Color(red: 0.15, green: 0.45, blue: 0.85)
+        case "Gym", "Running": return Color(red: 0.18, green: 0.75, blue: 0.44)
+        case "Coffee", "Cowork": return Color(red: 0.72, green: 0.45, blue: 0.20)
+        case "Gaming": return Color(red: 0.58, green: 0.25, blue: 0.85)
+        case "Hackathon": return Color(red: 0.95, green: 0.35, blue: 0.25)
+        case "Cooking": return Color(red: 0.92, green: 0.55, blue: 0.15)
+        case "Music": return Color(red: 0.88, green: 0.25, blue: 0.55)
+        default: return Theme.accent
+        }
+    }
+
+    private var categoryIcon: String {
+        switch event.category {
+        case "Study": return "book.fill"
+        case "Gym": return "figure.strengthtraining.traditional"
+        case "Running": return "figure.run"
+        case "Coffee": return "cup.and.saucer.fill"
+        case "Cowork": return "laptopcomputer"
+        case "Gaming": return "gamecontroller.fill"
+        case "Hackathon": return "chevron.left.forwardslash.chevron.right"
+        case "Cooking": return "fork.knife"
+        case "Music": return "music.note"
+        case "Language exchange": return "bubble.left.and.bubble.right.fill"
+        default: return "sparkles"
+        }
     }
 }

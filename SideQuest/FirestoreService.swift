@@ -15,6 +15,8 @@ final class FirebaseService {
         Auth.auth().currentUser?.uid ?? ""
     }
 
+    // MARK: - Profile
+
     func profile(uid: String) async throws -> Student? {
         let snapshot = try await db.collection("users").document(uid).getDocument()
         guard snapshot.exists else { return nil }
@@ -38,63 +40,104 @@ final class FirebaseService {
         try await db.collection("contacts").document(uid).setData(data)
     }
 
-    func candidates(limit: Int = 40) async throws -> [Student] {
-        let snapshot = try await db.collection("users").limit(to: limit).getDocuments()
-        return snapshot.documents.compactMap { document in
-            guard var student = try? document.data(as: Student.self) else { return nil }
-            student.id = document.documentID
-            return student
-        }
+    // MARK: - Events
+
+    func createEvent(_ event: EventItem) async throws {
+        let reference = db.collection("events").document(event.id)
+        try reference.setData(from: event)
     }
 
-    func likedTargets(by uid: String) async throws -> Set<String> {
-        let snapshot = try await db.collection("likes")
+    func fetchEvents(excludingHostUID: String) async throws -> [EventItem] {
+        let snapshot = try await db.collection("events")
+            .limit(to: 50)
+            .getDocuments()
+
+        return snapshot.documents.compactMap { document in
+            guard var item = try? document.data(as: EventItem.self) else { return nil }
+            item.id = document.documentID
+            return item
+        }
+        .filter { $0.hostId != excludingHostUID }
+    }
+
+    func myEvents(uid: String) async throws -> [EventItem] {
+        let snapshot = try await db.collection("events")
+            .whereField("hostId", isEqualTo: uid)
+            .getDocuments()
+
+        return snapshot.documents.compactMap { document in
+            guard var item = try? document.data(as: EventItem.self) else { return nil }
+            item.id = document.documentID
+            return item
+        }
+        .sorted { $0.eventDate < $1.eventDate }
+    }
+
+    func deleteEvent(id: String) async throws {
+        try await db.collection("events").document(id).delete()
+    }
+
+    // MARK: - Swiping & Matching on Events
+
+    func swipedEventIDs(by uid: String) async throws -> Set<String> {
+        let snapshot = try await db.collection("swipes")
             .whereField("actor", isEqualTo: uid)
             .getDocuments()
-        return Set(snapshot.documents.compactMap { $0.data()["target"] as? String })
+        return Set(snapshot.documents.compactMap { $0.data()["eventId"] as? String })
     }
 
-    func saveLike(from me: Student, to target: Student, phone: String) async throws {
-        let data: [String: Any] = [
-            "actor": me.id,
-            "target": target.id,
-            "actorPhone": phone,
+    func swipeEvent(event: EventItem, swiper: Student, swiperPhone: String, liked: Bool) async throws -> MatchDoc? {
+        let swipeID = "\(swiper.id)_\(event.id)"
+        let swipeData: [String: Any] = [
+            "actor": swiper.id,
+            "eventId": event.id,
+            "hostId": event.hostId,
+            "action": liked ? "like" : "pass",
             "createdAt": Date()
         ]
-        try await db.collection("likes").document("\(me.id)_\(target.id)").setData(data)
-    }
+        try await db.collection("swipes").document(swipeID).setData(swipeData)
 
-    func reverseLike(me: Student, target: Student) async throws -> Like? {
-        let snapshot = try await db.collection("likes").document("\(target.id)_\(me.id)").getDocument()
-        guard snapshot.exists else { return nil }
-        return try? snapshot.data(as: Like.self)
-    }
+        // Only create a match when swiped right (liked)
+        guard liked else { return nil }
 
-    func createMatch(me: Student, target: Student, theirPhone: String, myPhone: String) async throws -> MatchDoc {
-        let pair = [me.id, target.id].sorted()
-        let matchID = pair.joined(separator: "_")
-        let reference = db.collection("matches").document(matchID)
-
-        let existing = try await reference.getDocument()
+        let matchID = "\(event.id)_\(swiper.id)"
+        let matchRef = db.collection("matches").document(matchID)
+        let existing = try await matchRef.getDocument()
         if existing.exists, var existingMatch = try? existing.data(as: MatchDoc.self) {
             existingMatch.id = existing.documentID
             return existingMatch
         }
 
-        let shared = Array(Set(me.activities).intersection(Set(target.activities))).sorted()
         let match = MatchDoc(
             id: matchID,
-            participants: pair,
-            contacts: [me.id: myPhone, target.id: theirPhone],
-            names: [me.id: me.displayName, target.id: target.displayName],
-            photos: [me.id: me.photoURL, target.id: target.photoURL],
-            quests: [me.id: me.quest, target.id: target.quest],
-            sharedActivities: shared,
+            eventId: event.id,
+            eventTitle: event.title,
+            eventCategory: event.category,
+            participants: [swiper.id, event.hostId],
+            contacts: [
+                swiper.id: swiperPhone,
+                event.hostId: event.hostContact.isEmpty ? "Contact host in app" : event.hostContact
+            ],
+            names: [
+                swiper.id: swiper.displayName,
+                event.hostId: event.hostName
+            ],
+            photos: [
+                swiper.id: swiper.photoURL,
+                event.hostId: event.hostPhotoURL
+            ],
+            quests: [
+                swiper.id: swiper.quest,
+                event.hostId: event.description
+            ],
+            sharedActivities: [event.category],
             createdAt: Date()
         )
-        try await reference.setData(from: match)
+        try matchRef.setData(from: match)
         return match
     }
+
+    // MARK: - Matches
 
     func listenMatches(uid: String, onChange: @escaping ([MatchDoc]) -> Void) -> ListenerRegistration {
         db.collection("matches")
@@ -113,6 +156,8 @@ final class FirebaseService {
             }
     }
 
+    // MARK: - Media & Seed
+
     func uploadAvatar(uid: String, data: Data) async throws -> String {
         let reference = storage.reference().child("avatars/\(uid)")
         let metadata = StorageMetadata()
@@ -121,34 +166,35 @@ final class FirebaseService {
         return try await reference.downloadURL().absoluteString
     }
 
-    func seedDemoStudents(for me: Student) async throws -> Int {
+    func seedDemoEvents(for me: Student) async throws -> Int {
         var created = 0
 
-        for (index, person) in SeedData.people.enumerated() {
-            let uid = "demo_\(String(format: "%02d", index + 1))"
-            let userReference = db.collection("users").document(uid)
+        for person in SeedData.people {
+            // Seed host user profile if not present
+            let userReference = db.collection("users").document(person.student.id.isEmpty ? person.event.hostId : person.student.id)
             let existingUser = try await userReference.getDocument()
-
             if !existingUser.exists {
-                var seeded = person.student
-                seeded.id = uid
-                seeded.createdAt = Date()
-                try await userReference.setData(from: seeded)
-                created += 1
+                var s = person.student
+                s.id = person.event.hostId
+                s.createdAt = Date()
+                try userReference.setData(from: s)
             }
 
-            guard index % 2 == 0 else { continue }
+            // Seed host phone contact
+            let contactRef = db.collection("contacts").document(person.event.hostId)
+            let existingContact = try await contactRef.getDocument()
+            if !existingContact.exists {
+                try await contactRef.setData(["phoneNumber": person.phone])
+            }
 
-            let likeReference = db.collection("likes").document("\(uid)_\(me.id)")
-            let existingLike = try await likeReference.getDocument()
-            if !existingLike.exists {
-                let data: [String: Any] = [
-                    "actor": uid,
-                    "target": me.id,
-                    "actorPhone": person.phone,
-                    "createdAt": Date()
-                ]
-                try await likeReference.setData(data)
+            // Seed event
+            let eventRef = db.collection("events").document(person.event.id)
+            let existingEvent = try await eventRef.getDocument()
+            if !existingEvent.exists {
+                var ev = person.event
+                ev.createdAt = Date()
+                try eventRef.setData(from: ev)
+                created += 1
             }
         }
 

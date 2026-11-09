@@ -16,162 +16,252 @@ struct ProfileView: View {
     @State private var isSaving = false
     @State private var isSeeding = false
     @State private var message: String?
-    @State private var didLoad = false
+    @State private var myEvents: [EventItem] = []
+    @State private var showCreateEvent = false
 
     private let service = FirebaseService.shared
 
     var body: some View {
         NavigationStack {
             Form {
-                Section {
-                    let hasPhoto = photoItem != nil
-                    VStack(spacing: 12) {
-                        AvatarView(
-                            name: appState.myProfile?.displayName ?? name,
-                            urlString: appState.myProfile?.photoURL ?? "",
-                            size: 88
-                        )
-                        .overlay(Circle().stroke(.white, lineWidth: 4))
-                        .shadow(color: Theme.cardShadow, radius: 14, x: 0, y: 6)
+                avatarHeader
 
-                        VStack(spacing: 2) {
-                            Text(appState.myProfile?.displayName ?? name)
-                                .font(.title3.weight(.semibold))
-                                .foregroundStyle(Theme.ink)
+                aboutSection
 
-                            Text(appState.authUser?.email ?? "")
-                                .font(.footnote)
-                                .foregroundStyle(Theme.muted)
-                        }
+                interestsSection
 
-                        PhotosPicker(selection: $photoItem, matching: .images) {
-                            Text(hasPhoto ? "New photo selected" : "Change photo")
-                                .font(.subheadline.weight(.medium))
-                                .foregroundStyle(Theme.accent)
-                        }
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 10)
-                }
-                .listRowBackground(Color.clear)
+                bioSection
 
-                Section("About you") {
-                    TextField("Display name", text: $name)
-                        .textContentType(.name)
+                contactSection
 
-                    TextField("Major", text: $major)
+                saveSection
 
-                    Picker("Year", selection: $year) {
-                        ForEach(ActivityCatalog.years, id: \.self) { option in
-                            Text(option).tag(option)
-                        }
-                    }
-                    .pickerStyle(.navigationLink)
-                }
+                myEventsSection
 
-                Section {
-                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 110), spacing: 8)], spacing: 8) {
-                        ForEach(ActivityCatalog.all, id: \.self) { activity in
-                            Button {
-                                toggle(activity)
-                            } label: {
-                                ActivityChip(title: activity, selected: selected.contains(activity))
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-                    .padding(.vertical, 4)
-                } header: {
-                    Text("What are you up for?")
-                } footer: {
-                    Text("Pick up to four.")
-                }
-
-                Section("Your side quest") {
-                    TextField("Side quest", text: $quest, axis: .vertical)
-                        .lineLimit(2...4)
-                }
-
-                Section {
-                    TextField("Phone number", text: $phone)
-                        .keyboardType(.phonePad)
-                        .textContentType(.telephoneNumber)
-                } header: {
-                    Text("Contact")
-                } footer: {
-                    Text("Only shared with people you match with.")
-                }
-
-                Section {
-                    Button {
-                        Task { await save() }
-                    } label: {
-                        if isSaving {
-                            ProgressView().tint(.white)
-                        } else {
-                            Text("Save changes")
-                        }
-                    }
-                    .buttonStyle(PrimaryButtonStyle())
-                    .disabled(isSaving)
-                    .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
-                    .listRowBackground(Color.clear)
-                }
-
-                if let message {
-                    Section {
-                        Text(message)
-                            .font(.footnote)
-                            .foregroundStyle(Theme.muted)
-                    }
-                }
-
-                Section {
-                    Button {
-                        Task { await seed() }
-                    } label: {
-                        HStack {
-                            Text("Load demo students")
-                                .foregroundStyle(Theme.ink)
-                            Spacer()
-                            if isSeeding {
-                                ProgressView()
-                            } else {
-                                Image(systemName: "arrow.down.circle")
-                                    .foregroundStyle(Theme.accent)
-                            }
-                        }
-                    }
-                    .disabled(isSeeding)
-
-                    Button(role: .destructive) {
-                        appState.signOut()
-                    } label: {
-                        Text("Sign out")
-                            .frame(maxWidth: .infinity, alignment: .center)
-                    }
-                } header: {
-                    Text("Demo tools")
-                }
+                demoAccountSection
             }
             .scrollContentBackground(.hidden)
             .background(Theme.surface)
             .navigationTitle("Profile")
             .navigationBarTitleDisplayMode(.large)
             .tint(Theme.accent)
-            .task { loadIfNeeded() }
+            .task(id: appState.myProfile?.id) {
+                loadProfile()
+                await loadMyEvents()
+            }
+            .sheet(isPresented: $showCreateEvent) {
+                CreateEventView {
+                    Task { await loadMyEvents() }
+                }
+            }
         }
     }
 
-    private func loadIfNeeded() {
-        guard !didLoad, let me = appState.myProfile else { return }
+    private var avatarHeader: some View {
+        Section {
+            let hasPhoto = photoItem != nil
+            VStack(spacing: 12) {
+                AvatarView(
+                    name: appState.myProfile?.displayName ?? name,
+                    urlString: appState.myProfile?.photoURL ?? "",
+                    size: 88
+                )
+                .overlay(Circle().stroke(.white, lineWidth: 4))
+                .shadow(color: Theme.cardShadow, radius: 14, x: 0, y: 6)
+
+                VStack(spacing: 2) {
+                    Text(appState.myProfile?.displayName ?? name)
+                        .font(.title3.weight(.semibold))
+                        .foregroundStyle(Theme.ink)
+
+                    Text(appState.authUser?.email ?? "")
+                        .font(.footnote)
+                        .foregroundStyle(Theme.muted)
+                }
+
+                PhotosPicker(selection: $photoItem, matching: .images) {
+                    Text(hasPhoto ? "New photo selected" : "Change photo")
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(Theme.accent)
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 10)
+        }
+        .listRowBackground(Color.clear)
+    }
+
+    private var aboutSection: some View {
+        Section("About you") {
+            TextField("Display name", text: $name)
+                .textContentType(.name)
+
+            TextField("Major", text: $major)
+
+            Picker("Year", selection: $year) {
+                ForEach(ActivityCatalog.years, id: \.self) { option in
+                    Text(option).tag(option)
+                }
+            }
+            .pickerStyle(.navigationLink)
+        }
+    }
+
+    private var interestsSection: some View {
+        Section {
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 110), spacing: 8)], spacing: 8) {
+                ForEach(ActivityCatalog.all, id: \.self) { activity in
+                    Button {
+                        toggle(activity)
+                    } label: {
+                        ActivityChip(title: activity, selected: selected.contains(activity))
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.vertical, 4)
+        } header: {
+            Text("Your Interests")
+        } footer: {
+            Text("Events matching your interests are prioritized in your deck.")
+        }
+    }
+
+    private var bioSection: some View {
+        Section("Bio / Status") {
+            TextField("Personal bio", text: $quest, axis: .vertical)
+                .lineLimit(2...4)
+        }
+    }
+
+    private var contactSection: some View {
+        Section {
+            TextField("Phone number", text: $phone)
+                .keyboardType(.phonePad)
+                .textContentType(.telephoneNumber)
+        } header: {
+            Text("Contact Phone")
+        } footer: {
+            Text("Only shared with students who join your events or match with you.")
+        }
+    }
+
+    private var saveSection: some View {
+        Section {
+            Button {
+                Task { await save() }
+            } label: {
+                if isSaving {
+                    ProgressView().tint(.white)
+                } else {
+                    Text("Save changes")
+                }
+            }
+            .buttonStyle(PrimaryButtonStyle())
+            .disabled(isSaving)
+            .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
+            .listRowBackground(Color.clear)
+
+            if let message {
+                Text(message)
+                    .font(.footnote)
+                    .foregroundStyle(Theme.muted)
+            }
+        }
+    }
+
+    private var myEventsSection: some View {
+        Section("My Hosted Events") {
+            if myEvents.isEmpty {
+                Text("You haven't posted any events yet.")
+                    .font(.footnote)
+                    .foregroundStyle(Theme.muted)
+            } else {
+                ForEach(myEvents) { event in
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack {
+                            Text(event.title)
+                                .font(.headline)
+                                .foregroundStyle(Theme.ink)
+                            Spacer()
+                            TagChip(title: event.category)
+                        }
+                        Text(event.location)
+                            .font(.caption)
+                            .foregroundStyle(Theme.muted)
+                    }
+                    .padding(.vertical, 4)
+                    .swipeActions(edge: .trailing) {
+                        Button("Delete", role: .destructive) {
+                            Task { await deleteMyEvent(event) }
+                        }
+                    }
+                }
+            }
+
+            Button {
+                showCreateEvent = true
+            } label: {
+                Label("Post a new event", systemImage: "plus.circle.fill")
+                    .foregroundStyle(Theme.accent)
+            }
+        }
+    }
+
+    private var demoAccountSection: some View {
+        Section("Demo & Account") {
+            Button {
+                Task { await seed() }
+            } label: {
+                HStack {
+                    Text("Load demo events & students")
+                        .foregroundStyle(Theme.ink)
+                    Spacer()
+                    if isSeeding {
+                        ProgressView()
+                    } else {
+                        Image(systemName: "arrow.down.circle")
+                            .foregroundStyle(Theme.accent)
+                    }
+                }
+            }
+            .disabled(isSeeding)
+
+            Button(role: .destructive) {
+                appState.signOut()
+            } label: {
+                Text("Sign out")
+                    .frame(maxWidth: .infinity, alignment: .center)
+            }
+        }
+    }
+
+    private func loadProfile() {
+        guard let me = appState.myProfile else { return }
         name = me.displayName
         major = me.major
         year = me.year
         selected = Set(me.activities)
         quest = me.quest
         phone = appState.myPhone
-        didLoad = true
+    }
+
+    private func loadMyEvents() async {
+        guard let me = appState.myProfile else { return }
+        do {
+            myEvents = try await service.myEvents(uid: me.id)
+        } catch {
+            // Silently handle
+        }
+    }
+
+    private func deleteMyEvent(_ event: EventItem) async {
+        do {
+            try await service.deleteEvent(id: event.id)
+            myEvents.removeAll { $0.id == event.id }
+        } catch {
+            message = error.localizedDescription
+        }
     }
 
     private func toggle(_ activity: String) {
@@ -198,7 +288,11 @@ struct ProfileView: View {
             if let photoItem,
                let data = try await photoItem.loadTransferable(type: Data.self),
                let compressed = ImageUtils.compress(data) {
-                student.photoURL = try await service.uploadAvatar(uid: student.id, data: compressed)
+                do {
+                    student.photoURL = try await service.uploadAvatar(uid: student.id, data: compressed)
+                } catch {
+                    // Graceful fallback if storage is unconfigured
+                }
             }
 
             let trimmedPhone = phone.trimmingCharacters(in: .whitespaces)
@@ -208,7 +302,7 @@ struct ProfileView: View {
             appState.myProfile = student
             appState.myPhone = trimmedPhone
             photoItem = nil
-            message = "Saved."
+            message = "Profile saved successfully."
         } catch {
             message = error.localizedDescription
         }
@@ -222,10 +316,10 @@ struct ProfileView: View {
         message = nil
 
         do {
-            let created = try await service.seedDemoStudents(for: me)
+            let created = try await service.seedDemoEvents(for: me)
             message = created > 0
-                ? "Added \(created) demo students. Go to Discover."
-                : "Demo students are already loaded."
+                ? "Loaded \(created) demo events! Go to Discover to swipe."
+                : "Demo events are already loaded."
         } catch {
             message = error.localizedDescription
         }

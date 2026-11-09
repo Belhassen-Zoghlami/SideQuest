@@ -167,7 +167,11 @@ struct OnboardingView: View {
             if let photoItem,
                let data = try await photoItem.loadTransferable(type: Data.self),
                let compressed = ImageUtils.compress(data) {
-                student.photoURL = try await service.uploadAvatar(uid: uid, data: compressed)
+                do {
+                    student.photoURL = try await service.uploadAvatar(uid: uid, data: compressed)
+                } catch {
+                    // Graceful fallback to initials placeholder if storage is unconfigured
+                }
             }
 
             let trimmedPhone = phone.trimmingCharacters(in: .whitespaces)

@@ -12,7 +12,8 @@ final class MatchesViewModel {
     private var listener: ListenerRegistration?
 
     func start(uid: String) {
-        guard listener == nil, !uid.isEmpty else { return }
+        guard !uid.isEmpty else { return }
+        stop()
 
         listener = service.listenMatches(uid: uid) { [weak self] matches in
             guard let self else { return }
