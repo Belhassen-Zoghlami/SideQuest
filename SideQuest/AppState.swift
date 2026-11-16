@@ -1,6 +1,7 @@
 import Foundation
 import Observation
 import FirebaseAuth
+import FirebaseCore
 
 @MainActor
 @Observable
@@ -13,7 +14,31 @@ final class AppState {
 
     private var authHandle: AuthStateDidChangeListenerHandle?
 
+    static func ensureFirebaseConfigured() {
+        if FirebaseApp.app() == nil {
+            FirebaseApp.configure()
+        }
+    }
+
+    static var preview: AppState {
+        ensureFirebaseConfigured()
+        let state = AppState()
+        state.isLoadingProfile = false
+        state.myPhone = "+1 (555) 010-0199"
+        state.myProfile = Student(
+            id: "preview_user",
+            displayName: "Alex Rivera",
+            major: "Computer Science",
+            year: "Year 3",
+            activities: ["Study", "Coffee", "Gaming"],
+            quest: "Building iOS apps and finding hackathon teammates!",
+            photoURL: ""
+        )
+        return state
+    }
+
     func start() {
+        AppState.ensureFirebaseConfigured()
         guard authHandle == nil else { return }
         authHandle = Auth.auth().addStateDidChangeListener { [weak self] _, user in
             Task { @MainActor in

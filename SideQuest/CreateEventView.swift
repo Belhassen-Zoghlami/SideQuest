@@ -1,4 +1,5 @@
 import SwiftUI
+import PhotosUI
 
 struct CreateEventView: View {
     @Environment(AppState.self) private var appState
@@ -15,11 +16,81 @@ struct CreateEventView: View {
     @State private var isSubmitting = false
     @State private var errorMessage: String?
 
+    // Image picker state
+    @State private var selectedPhotoItem: PhotosPickerItem? = nil
+    @State private var selectedImageData: Data? = nil
+    @State private var selectedImage: UIImage? = nil
+
     private let service = FirebaseService.shared
 
     var body: some View {
         NavigationStack {
             Form {
+                // ── Cover Photo ──────────────────────────────────────
+                Section {
+                    PhotosPicker(
+                        selection: $selectedPhotoItem,
+                        matching: .images,
+                        photoLibrary: .shared()
+                    ) {
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                .fill(Theme.fill)
+                                .frame(height: 160)
+
+                            if let selectedImage {
+                                Image(uiImage: selectedImage)
+                                    .resizable()
+                                    .scaledToFill()
+                                    .frame(height: 160)
+                                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                                    .overlay(
+                                        // Edit badge
+                                        HStack(spacing: 4) {
+                                            Image(systemName: "pencil")
+                                                .font(.caption.weight(.semibold))
+                                            Text("Change")
+                                                .font(.caption.weight(.semibold))
+                                        }
+                                        .padding(.horizontal, 10)
+                                        .padding(.vertical, 5)
+                                        .background(.ultraThinMaterial, in: Capsule())
+                                        .padding(10),
+                                        alignment: .bottomTrailing
+                                    )
+                            } else {
+                                VStack(spacing: 10) {
+                                    Image(systemName: "photo.badge.plus")
+                                        .font(.system(size: 32))
+                                        .foregroundStyle(Theme.accent)
+                                    Text("Add Cover Photo")
+                                        .font(.subheadline.weight(.medium))
+                                        .foregroundStyle(Theme.muted)
+                                    Text("Optional — makes your event stand out")
+                                        .font(.caption)
+                                        .foregroundStyle(Theme.muted.opacity(0.7))
+                                }
+                            }
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .listRowInsets(EdgeInsets(top: 10, leading: 12, bottom: 10, trailing: 12))
+                    .onChange(of: selectedPhotoItem) { _, newItem in
+                        Task {
+                            if let item = newItem,
+                               let data = try? await item.loadTransferable(type: Data.self),
+                               let compressed = ImageUtils.compress(data, maxDimension: 1200, quality: 0.72),
+                               let image = UIImage(data: compressed) {
+                                selectedImageData = compressed
+                                selectedImage = image
+                            }
+                        }
+                    }
+                } header: {
+                    Text("Cover Photo")
+                }
+
+                // ── Event Overview ───────────────────────────────────
                 Section("Event Overview") {
                     TextField("e.g. Data Structures Midterm Cram", text: $title)
                         .font(.body)
@@ -32,6 +103,7 @@ struct CreateEventView: View {
                     .pickerStyle(.navigationLink)
                 }
 
+                // ── When & Where ─────────────────────────────────────
                 Section("When & Where") {
                     DatePicker("Date & Time", selection: $eventDate, in: Date()...)
                         .datePickerStyle(.compact)
@@ -39,11 +111,13 @@ struct CreateEventView: View {
                     TextField("e.g. Main Library, 2nd Floor Study Pods", text: $location)
                 }
 
+                // ── Details ──────────────────────────────────────────
                 Section("Details") {
                     TextField("Describe what you're doing, who you're looking for, and what to bring…", text: $description, axis: .vertical)
                         .lineLimit(3...6)
                 }
 
+                // ── Contact ──────────────────────────────────────────
                 Section {
                     TextField("Phone number (shared upon match)", text: $contactPhone)
                         .keyboardType(.phonePad)
@@ -54,6 +128,7 @@ struct CreateEventView: View {
                     Text("This phone number is revealed only to students who swipe right to join your event.")
                 }
 
+                // ── Error ─────────────────────────────────────────────
                 if let errorMessage {
                     Section {
                         Label(errorMessage, systemImage: "exclamationmark.circle.fill")
@@ -62,12 +137,17 @@ struct CreateEventView: View {
                     }
                 }
 
+                // ── Submit ────────────────────────────────────────────
                 Section {
                     Button {
                         Task { await submitEvent() }
                     } label: {
                         if isSubmitting {
-                            ProgressView().tint(.white)
+                            HStack(spacing: 8) {
+                                ProgressView().tint(.white)
+                                Text(selectedImageData != nil ? "Uploading…" : "Posting…")
+                                    .foregroundStyle(.white)
+                            }
                         } else {
                             Text("Post Event")
                         }
@@ -113,8 +193,21 @@ struct CreateEventView: View {
             ? appState.myPhone
             : contactPhone.trimmingCharacters(in: .whitespaces)
 
+        let eventId = UUID().uuidString
+
+        // Upload event image if one was selected
+        var eventPhotoURL = me.photoURL
+        if let imageData = selectedImageData {
+            do {
+                eventPhotoURL = try await service.uploadEventImage(eventId: eventId, data: imageData)
+            } catch {
+                // Non-fatal: fall back to host photo
+                eventPhotoURL = me.photoURL
+            }
+        }
+
         let newEvent = EventItem(
-            id: UUID().uuidString,
+            id: eventId,
             hostId: me.id,
             hostName: me.displayName,
             hostPhotoURL: me.photoURL,
@@ -127,7 +220,7 @@ struct CreateEventView: View {
             location: location.trimmingCharacters(in: .whitespaces),
             eventDate: eventDate,
             createdAt: Date(),
-            photoURL: me.photoURL
+            photoURL: eventPhotoURL
         )
 
         do {

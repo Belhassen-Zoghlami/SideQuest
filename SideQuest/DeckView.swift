@@ -12,14 +12,30 @@ struct DeckView: View {
             ZStack {
                 Theme.surface.ignoresSafeArea()
 
-                RadialGradient(
-                    colors: [Theme.accent.opacity(0.10), .clear],
-                    center: .top,
-                    startRadius: 0,
-                    endRadius: 420
-                )
-                .ignoresSafeArea()
-                .allowsHitTesting(false)
+                // Ambient multi-hued light glow
+                Circle()
+                    .fill(Theme.accent.opacity(0.09))
+                    .frame(width: 320, height: 320)
+                    .blur(radius: 80)
+                    .offset(x: -120, y: -220)
+                    .ignoresSafeArea()
+                    .allowsHitTesting(false)
+
+                Circle()
+                    .fill(Theme.rose.opacity(0.06))
+                    .frame(width: 260, height: 260)
+                    .blur(radius: 70)
+                    .offset(x: 140, y: -160)
+                    .ignoresSafeArea()
+                    .allowsHitTesting(false)
+
+                Circle()
+                    .fill(Theme.teal.opacity(0.05))
+                    .frame(width: 280, height: 280)
+                    .blur(radius: 80)
+                    .offset(x: 40, y: 220)
+                    .ignoresSafeArea()
+                    .allowsHitTesting(false)
 
                 VStack(spacing: 0) {
                     categoryFilterBar
@@ -48,26 +64,24 @@ struct DeckView: View {
             }
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    HStack(alignment: .center) {
+                ToolbarItem(placement: .principal) {
+                    HStack(spacing: 8) {
                         Image("AppLogo")
                             .resizable()
                             .scaledToFit()
-                            .frame(width: 28, height: 28)
-                            .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+                            .frame(width: 26, height: 26)
+                            .clipShape(Circle())
                             .overlay(
-                                RoundedRectangle(cornerRadius: 7, style: .continuous)
+                                Circle()
                                     .strokeBorder(Color.white.opacity(0.35), lineWidth: 1)
                             )
                             .shadow(color: Color.black.opacity(0.12), radius: 3, x: 0, y: 1)
-                            .alignmentGuide(.firstTextBaseline) { d in d[VerticalAlignment.center] }
 
                         Text("SideQuest")
-                            .font(.system(size: 20, weight: .bold))
+                            .font(.system(size: 19, weight: .bold))
                             .tracking(-0.4)
                             .foregroundStyle(Theme.ink)
                     }
-                    .frame(height: 44)
                 }
 
                 ToolbarItem(placement: .topBarTrailing) {
@@ -147,12 +161,14 @@ struct DeckView: View {
     }
 
     private func categoryPill(title: String, isSelected: Bool, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
+        let pillColor = title == "All" ? Theme.accent : Theme.categoryColor(title)
+
+        return Button(action: action) {
             Text(title)
                 .font(.caption.weight(.semibold))
                 .padding(.horizontal, 14)
                 .padding(.vertical, 7)
-                .background(isSelected ? Theme.accent : Theme.fill, in: Capsule())
+                .background(isSelected ? pillColor : Theme.fill, in: Capsule())
                 .foregroundStyle(isSelected ? Color.white : Theme.ink)
         }
         .buttonStyle(.plain)
@@ -266,4 +282,9 @@ struct DeckView: View {
         }
         .padding(.vertical, 24)
     }
+}
+
+#Preview {
+    DeckView(onSeeMatches: {})
+        .environment(AppState.preview)
 }

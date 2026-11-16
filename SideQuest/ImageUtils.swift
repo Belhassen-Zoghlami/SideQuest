@@ -29,6 +29,32 @@ enum ImageUtils: Sendable {
         return dir
     }
 
+    private static var eventImagesDirectory: URL {
+        let paths = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
+        let dir = paths[0].appendingPathComponent("event_images", isDirectory: true)
+        if !FileManager.default.fileExists(atPath: dir.path) {
+            try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        }
+        return dir
+    }
+
+    @discardableResult
+    static func saveEventImageLocally(data: Data, eventId: String) -> String {
+        let filename = "event_\(eventId).jpg"
+        let fileURL = eventImagesDirectory.appendingPathComponent(filename)
+        do {
+            try data.write(to: fileURL, options: .atomic)
+            let identifier = "local://event_images/\(filename)"
+            if let img = UIImage(data: data) {
+                cache.setObject(img, forKey: identifier as NSString)
+            }
+            return identifier
+        } catch {
+            print("Failed to save event image locally: \(error)")
+            return ""
+        }
+    }
+
     @discardableResult
     static func saveLocally(data: Data, filename: String) -> String {
         let fileURL = avatarsDirectory.appendingPathComponent(filename)
@@ -52,7 +78,10 @@ enum ImageUtils: Sendable {
         }
 
         var filePath: String?
-        if identifier.hasPrefix("local://") {
+        if identifier.hasPrefix("local://event_images/") {
+            let filename = String(identifier.dropFirst("local://event_images/".count))
+            filePath = eventImagesDirectory.appendingPathComponent(filename).path
+        } else if identifier.hasPrefix("local://") {
             let filename = String(identifier.dropFirst("local://".count))
             let fileURL = avatarsDirectory.appendingPathComponent(filename)
             filePath = fileURL.path

@@ -17,27 +17,30 @@ struct SwipeCardView: View {
 
                 LinearGradient(
                     colors: [
-                        .black.opacity(0.15),
-                        .black.opacity(0.40),
-                        .black.opacity(0.92)
+                        .black.opacity(0.0),
+                        .black.opacity(0.30),
+                        .black.opacity(0.88)
                     ],
-                    startPoint: .top,
+                    startPoint: .center,
                     endPoint: .bottom
                 )
 
                 VStack(alignment: .leading, spacing: 0) {
                     topChips
-                        .padding(20)
+                        .padding(16)
 
-                    Spacer()
+                    Spacer(minLength: 0)
 
                     eventDetails
-                        .padding(22)
+                        .padding(.horizontal, 18)
+                        .padding(.bottom, 20)
+                        .padding(.top, 8)
                 }
 
                 stamps
             }
             .frame(width: geo.size.width, height: geo.size.height)
+            .clipped()                                               // prevent any child overflow
             .background(Theme.card)
             .clipShape(RoundedRectangle(cornerRadius: radius, style: .continuous))
             .overlay(
@@ -146,52 +149,50 @@ struct SwipeCardView: View {
     }
 
     private var eventDetails: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 6) {
             Text(event.title)
-                .font(.system(size: 28, weight: .bold))
+                .font(.system(size: 22, weight: .bold))
                 .tracking(-0.4)
                 .foregroundStyle(.white)
                 .lineLimit(2)
-                .fixedSize(horizontal: false, vertical: true)
+                .minimumScaleFactor(0.85)
 
-            HStack(spacing: 6) {
+            HStack(spacing: 5) {
                 Image(systemName: "mappin.and.ellipse")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(Theme.butter)
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(Theme.teal)
 
                 Text(event.location)
-                    .font(.subheadline.weight(.medium))
+                    .font(.footnote.weight(.medium))
                     .foregroundStyle(.white.opacity(0.92))
                     .lineLimit(1)
             }
 
             Text(event.description)
-                .font(.callout)
-                .foregroundStyle(.white.opacity(0.92))
+                .font(.caption)
+                .foregroundStyle(.white.opacity(0.88))
                 .lineSpacing(2)
                 .lineLimit(3)
-                .fixedSize(horizontal: false, vertical: true)
-                .padding(.top, 2)
 
             Divider()
                 .background(Color.white.opacity(0.2))
-                .padding(.vertical, 4)
+                .padding(.vertical, 2)
 
             // Host badge
-            HStack(spacing: 10) {
-                AvatarView(name: event.hostName, urlString: event.hostPhotoURL, size: 40)
+            HStack(spacing: 8) {
+                AvatarView(name: event.hostName, urlString: event.hostPhotoURL, size: 34)
                     .overlay(Circle().stroke(Color.white.opacity(0.4), lineWidth: 1))
 
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: 1) {
                     Text("Hosted by \(event.hostName)")
-                        .font(.subheadline.weight(.semibold))
+                        .font(.caption.weight(.semibold))
                         .foregroundStyle(.white)
                         .lineLimit(1)
 
                     if !event.hostMajor.isEmpty {
                         Text("\(event.hostYear) • \(event.hostMajor)")
-                            .font(.caption)
-                            .foregroundStyle(.white.opacity(0.8))
+                            .font(.caption2)
+                            .foregroundStyle(.white.opacity(0.75))
                             .lineLimit(1)
                     }
                 }
@@ -199,6 +200,8 @@ struct SwipeCardView: View {
                 Spacer()
             }
         }
+        // Safety clamp: never let the detail block grow taller than 44% of the card
+        .fixedSize(horizontal: false, vertical: false)
     }
 
     private var stamps: some View {
@@ -207,12 +210,12 @@ struct SwipeCardView: View {
                 Text("PASS")
                     .font(.system(size: 26, weight: .heavy))
                     .tracking(2)
-                    .foregroundStyle(Theme.red)
+                    .foregroundStyle(Theme.rose)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 6)
                     .overlay(
                         RoundedRectangle(cornerRadius: 8, style: .continuous)
-                            .stroke(Theme.red, lineWidth: 3)
+                            .stroke(Theme.rose, lineWidth: 3)
                     )
                     .rotationEffect(.degrees(-12))
                     .opacity(leftOpacity)
@@ -222,12 +225,12 @@ struct SwipeCardView: View {
                 Text("JOIN")
                     .font(.system(size: 26, weight: .heavy))
                     .tracking(2)
-                    .foregroundStyle(Theme.green)
+                    .foregroundStyle(Theme.teal)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 6)
                     .overlay(
                         RoundedRectangle(cornerRadius: 8, style: .continuous)
-                            .stroke(Theme.green, lineWidth: 3)
+                            .stroke(Theme.teal, lineWidth: 3)
                     )
                     .rotationEffect(.degrees(12))
                     .opacity(rightOpacity)
@@ -259,16 +262,7 @@ struct SwipeCardView: View {
     }
 
     private var categoryColor: Color {
-        switch event.category {
-        case "Study": return Color(red: 0.15, green: 0.45, blue: 0.85)
-        case "Gym", "Running": return Color(red: 0.18, green: 0.75, blue: 0.44)
-        case "Coffee", "Cowork": return Color(red: 0.72, green: 0.45, blue: 0.20)
-        case "Gaming": return Color(red: 0.58, green: 0.25, blue: 0.85)
-        case "Hackathon": return Color(red: 0.95, green: 0.35, blue: 0.25)
-        case "Cooking": return Color(red: 0.92, green: 0.55, blue: 0.15)
-        case "Music": return Color(red: 0.88, green: 0.25, blue: 0.55)
-        default: return Theme.accent
-        }
+        Theme.categoryColor(event.category)
     }
 
     private var categoryIcon: String {
@@ -286,4 +280,13 @@ struct SwipeCardView: View {
         default: return "sparkles"
         }
     }
+}
+
+#Preview {
+    SwipeCardView(
+        event: SeedData.people[0].event,
+        onSwipe: { _ in }
+    )
+    .padding()
+    .background(Theme.surface)
 }

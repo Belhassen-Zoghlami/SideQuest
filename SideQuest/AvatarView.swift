@@ -7,31 +7,40 @@ struct AvatarView: View {
     var size: CGFloat = 56
 
     var body: some View {
-        Group {
-            if let image {
-                Image(uiImage: image)
-                    .resizable()
-                    .scaledToFill()
-            } else if let localImage = ImageUtils.loadLocalImage(urlString) {
-                Image(uiImage: localImage)
-                    .resizable()
-                    .scaledToFill()
-            } else if let url = URL(string: urlString), !urlString.isEmpty {
-                AsyncImage(url: url) { phase in
-                    switch phase {
-                    case .success(let image):
-                        image.resizable().scaledToFill()
-                    default:
-                        placeholder
-                    }
+        content
+            .frame(width: size, height: size)   // hard static frame — always enforced
+            .clipShape(Circle())
+            .overlay(Circle().stroke(Color.white.opacity(0.8), lineWidth: 1))
+    }
+
+    @ViewBuilder
+    private var content: some View {
+        if let image {
+            Image(uiImage: image)
+                .resizable()
+                .scaledToFill()
+                .frame(width: size, height: size)   // explicit inner frame before clip
+        } else if let localImage = ImageUtils.loadLocalImage(urlString) {
+            Image(uiImage: localImage)
+                .resizable()
+                .scaledToFill()
+                .frame(width: size, height: size)
+        } else if let url = URL(string: urlString), !urlString.isEmpty {
+            AsyncImage(url: url) { phase in
+                switch phase {
+                case .success(let img):
+                    img
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: size, height: size)
+                default:
+                    placeholder
                 }
-            } else {
-                placeholder
             }
+            .frame(width: size, height: size)       // constrain the AsyncImage container too
+        } else {
+            placeholder
         }
-        .frame(width: size, height: size)
-        .clipShape(Circle())
-        .overlay(Circle().stroke(Color.white.opacity(0.8), lineWidth: 1))
     }
 
     private var placeholder: some View {
@@ -45,6 +54,7 @@ struct AvatarView: View {
                 .font(.system(size: size * 0.34, weight: .semibold))
                 .foregroundStyle(.white)
         }
+        .frame(width: size, height: size)
     }
 
     private var initials: String {

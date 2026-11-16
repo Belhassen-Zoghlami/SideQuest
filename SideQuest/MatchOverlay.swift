@@ -37,8 +37,8 @@ struct MatchOverlay: View {
             VStack(spacing: 16) {
                 VStack(spacing: 6) {
                     Image(systemName: "sparkles")
-                        .font(.system(size: 24, weight: .bold))
-                        .foregroundStyle(Theme.butter)
+                        .font(.system(size: 26, weight: .bold))
+                        .foregroundStyle(Theme.rose)
 
                     Text("You're In!")
                         .font(.system(size: 32, weight: .bold))
@@ -59,15 +59,11 @@ struct MatchOverlay: View {
                 )
                 .overlay(
                     Circle().strokeBorder(
-                        LinearGradient(
-                            colors: [Theme.accent, Theme.butter],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ),
+                        Theme.roseGradient,
                         lineWidth: 4
                     )
                 )
-                .shadow(color: Theme.accent.opacity(0.25), radius: 18, x: 0, y: 10)
+                .shadow(color: Theme.rose.opacity(0.3), radius: 18, x: 0, y: 10)
                 .padding(.top, 2)
 
                 VStack(spacing: 3) {

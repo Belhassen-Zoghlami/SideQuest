@@ -10,17 +10,24 @@ struct AuthView: View {
             Theme.surface.ignoresSafeArea()
 
             Circle()
-                .fill(Theme.accent.opacity(0.16))
+                .fill(Theme.accent.opacity(0.14))
                 .frame(width: 420, height: 420)
                 .blur(radius: 90)
                 .offset(x: -150, y: -300)
                 .ignoresSafeArea()
 
             Circle()
-                .fill(Theme.butter.opacity(0.20))
+                .fill(Theme.rose.opacity(0.10))
+                .frame(width: 320, height: 320)
+                .blur(radius: 85)
+                .offset(x: 140, y: -260)
+                .ignoresSafeArea()
+
+            Circle()
+                .fill(Theme.teal.opacity(0.10))
                 .frame(width: 300, height: 300)
                 .blur(radius: 90)
-                .offset(x: 165, y: -230)
+                .offset(x: 80, y: 220)
                 .ignoresSafeArea()
 
             ScrollView {
@@ -152,4 +159,9 @@ struct AuthView: View {
                 .stroke(Theme.hairline.opacity(0.4), lineWidth: 0.5)
         )
     }
+}
+
+#Preview {
+    AuthView()
+        .environment(AppState.preview)
 }

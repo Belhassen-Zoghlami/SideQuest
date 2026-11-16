@@ -7,12 +7,17 @@
 
 import SwiftUI
 import FirebaseCore
+
 @main
 struct SideQuestApp: App {
     @State private var appState = AppState()
-    init(){
-        FirebaseApp.configure()
+
+    init() {
+        if FirebaseApp.app() == nil {
+            FirebaseApp.configure()
+        }
     }
+
     var body: some Scene {
         WindowGroup {
             ContentView().environment(appState)

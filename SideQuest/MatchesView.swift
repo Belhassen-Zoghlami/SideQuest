@@ -81,3 +81,8 @@ struct MatchesView: View {
         .tint(Theme.accent)
     }
 }
+
+#Preview {
+    MatchesView()
+        .environment(AppState.preview)
+}

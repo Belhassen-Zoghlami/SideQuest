@@ -205,3 +205,8 @@ struct OnboardingView: View {
         isSaving = false
     }
 }
+
+#Preview {
+    OnboardingView()
+        .environment(AppState.preview)
+}

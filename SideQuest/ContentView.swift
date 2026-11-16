@@ -33,8 +33,8 @@ struct ContentView: View {
         }
         .task {
             appState.start()
-            try? await Task.sleep(nanoseconds: 1_200_000_000)
-            withAnimation(.easeInOut(duration: 0.35)) {
+            try? await Task.sleep(nanoseconds: 1_600_000_000)
+            withAnimation(.easeInOut(duration: 0.45)) {
                 isSplashActive = false
             }
         }
@@ -76,5 +76,10 @@ struct MainTabView: View {
         .toolbarBackground(.regularMaterial, for: .tabBar)
         .toolbarBackground(.visible, for: .tabBar)
     }
+}
+
+#Preview {
+    ContentView()
+        .environment(AppState.preview)
 }
 

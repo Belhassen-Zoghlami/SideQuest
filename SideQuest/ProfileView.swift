@@ -371,3 +371,8 @@ struct ProfileView: View {
         isSeeding = false
     }
 }
+
+#Preview {
+    ProfileView()
+        .environment(AppState.preview)
+}

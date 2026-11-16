@@ -174,6 +174,21 @@ final class FirebaseService {
         }
     }
 
+    func uploadEventImage(eventId: String, data: Data) async throws -> String {
+        let localIdentifier = ImageUtils.saveEventImageLocally(data: data, eventId: eventId)
+
+        do {
+            let reference = storage.reference().child("event_images/\(eventId).jpg")
+            let metadata = StorageMetadata()
+            metadata.contentType = "image/jpeg"
+            _ = try await reference.putDataAsync(data, metadata: metadata)
+            return try await reference.downloadURL().absoluteString
+        } catch {
+            print("Firebase Storage event image upload error (\(error.localizedDescription)). Using local image persistence.")
+            return localIdentifier
+        }
+    }
+
     func seedDemoEvents(for me: Student) async throws -> Int {
         var created = 0
 
