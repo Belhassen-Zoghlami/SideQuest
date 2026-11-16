@@ -84,7 +84,11 @@ struct SwipeCardView: View {
 
     private var backgroundMedia: some View {
         Group {
-            if let url = URL(string: event.photoURL), !event.photoURL.isEmpty {
+            if let localImage = ImageUtils.loadLocalImage(event.photoURL) {
+                Image(uiImage: localImage)
+                    .resizable()
+                    .scaledToFill()
+            } else if let url = URL(string: event.photoURL), !event.photoURL.isEmpty {
                 AsyncImage(url: url) { phase in
                     switch phase {
                     case .success(let image):

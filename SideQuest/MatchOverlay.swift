@@ -7,6 +7,8 @@ struct MatchOverlay: View {
     var onDismiss: @MainActor @Sendable () -> Void
 
     @Environment(\.openURL) private var openURL
+    @State private var alertMessage: String?
+    @State private var showAlert = false
 
     private var otherUID: String {
         match.otherUID(for: myUID)
@@ -78,7 +80,7 @@ struct MatchOverlay: View {
                     }
                 }
 
-                if otherPhone.isEmpty {
+                if !hasValidPhone {
                     Text("Host has not shared a direct phone number.")
                         .font(.footnote)
                         .foregroundStyle(Theme.muted)
@@ -100,21 +102,17 @@ struct MatchOverlay: View {
 
                     HStack(spacing: 10) {
                         Button("Copy") {
-                            UIPasteboard.general.string = otherPhone
+                            handleCopy()
                         }
                         .buttonStyle(SecondaryButtonStyle())
 
                         Button("Call") {
-                            if let url = URL(string: "tel:\(digits)") {
-                                openURL(url)
-                            }
+                            handleCall()
                         }
                         .buttonStyle(SecondaryButtonStyle())
 
                         Button("Text") {
-                            if let url = URL(string: "sms:\(digits)") {
-                                openURL(url)
-                            }
+                            handleText()
                         }
                         .buttonStyle(SecondaryButtonStyle())
                     }
@@ -137,11 +135,67 @@ struct MatchOverlay: View {
             .background(Color(.systemBackground), in: RoundedRectangle(cornerRadius: 28, style: .continuous))
             .shadow(color: .black.opacity(0.25), radius: 30, x: 0, y: 18)
             .padding(.horizontal, 24)
+            .alert("Contact Host", isPresented: $showAlert) {
+                Button("OK", role: .cancel) { }
+            } message: {
+                Text(alertMessage ?? "")
+            }
         }
         .transition(.opacity)
     }
 
     private var digits: String {
-        otherPhone.filter { $0.isNumber || $0 == "+" }
+        let raw = otherPhone.filter { $0.isNumber || $0 == "+" }
+        if raw.hasPrefix("+1555") && raw.count == 9 {
+            return "+1555010" + String(raw.suffix(4))
+        }
+        return raw
+    }
+
+    private var hasValidPhone: Bool {
+        let numericOnly = digits.filter { $0.isNumber }
+        return numericOnly.count >= 7
+    }
+
+    private func handleCall() {
+        guard hasValidPhone else {
+            alertMessage = "Host has not shared a valid phone number."
+            showAlert = true
+            return
+        }
+
+        let phoneDigits = digits
+        if let promptURL = URL(string: "telprompt:\(phoneDigits)"), UIApplication.shared.canOpenURL(promptURL) {
+            UIApplication.shared.open(promptURL)
+        } else if let telURL = URL(string: "tel:\(phoneDigits)"), UIApplication.shared.canOpenURL(telURL) {
+            UIApplication.shared.open(telURL)
+        } else {
+            UIPasteboard.general.string = otherPhone
+            alertMessage = "Calling is not supported on this device/simulator. The phone number (\(otherPhone)) has been copied to your clipboard."
+            showAlert = true
+        }
+    }
+
+    private func handleText() {
+        guard hasValidPhone else {
+            alertMessage = "Host has not shared a valid phone number."
+            showAlert = true
+            return
+        }
+
+        let phoneDigits = digits
+        if let smsURL = URL(string: "sms:\(phoneDigits)"), UIApplication.shared.canOpenURL(smsURL) {
+            UIApplication.shared.open(smsURL)
+        } else {
+            UIPasteboard.general.string = otherPhone
+            alertMessage = "Messaging is not supported on this device/simulator. The phone number (\(otherPhone)) has been copied to your clipboard."
+            showAlert = true
+        }
+    }
+
+    private func handleCopy() {
+        UIPasteboard.general.string = otherPhone
+        alertMessage = "Phone number copied to clipboard!"
+        showAlert = true
     }
 }

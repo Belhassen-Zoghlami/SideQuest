@@ -46,9 +46,30 @@ struct DeckView: View {
                     }
                 }
             }
-            .navigationTitle("Discover Events")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    HStack(alignment: .center) {
+                        Image("AppLogo")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 28, height: 28)
+                            .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 7, style: .continuous)
+                                    .strokeBorder(Color.white.opacity(0.35), lineWidth: 1)
+                            )
+                            .shadow(color: Color.black.opacity(0.12), radius: 3, x: 0, y: 1)
+                            .alignmentGuide(.firstTextBaseline) { d in d[VerticalAlignment.center] }
+
+                        Text("SideQuest")
+                            .font(.system(size: 20, weight: .bold))
+                            .tracking(-0.4)
+                            .foregroundStyle(Theme.ink)
+                    }
+                    .frame(height: 44)
+                }
+
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         showCreateEvent = true
@@ -190,11 +211,26 @@ struct DeckView: View {
     }
 
     private func emptyState(me: Student) -> some View {
-        ContentUnavailableView {
-            Label("No events right now", systemImage: "sparkles")
-        } description: {
-            Text("You've seen all events in this category. Post your own event or load demo events to test!")
-        } actions: {
+        VStack(spacing: 16) {
+            Image("AppLogo")
+                .resizable()
+                .scaledToFit()
+                .frame(width: 64, height: 64)
+                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .shadow(color: Theme.accent.opacity(0.2), radius: 10, x: 0, y: 4)
+
+            VStack(spacing: 6) {
+                Text("No events right now")
+                    .font(.title3.weight(.bold))
+                    .foregroundStyle(Theme.ink)
+
+                Text("You've seen all events in this category. Post your own event or load demo events to test!")
+                    .font(.subheadline)
+                    .foregroundStyle(Theme.muted)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 28)
+            }
+
             VStack(spacing: 12) {
                 Button {
                     showCreateEvent = true
@@ -226,7 +262,8 @@ struct DeckView: View {
                 .font(.footnote.weight(.medium))
                 .foregroundStyle(Theme.muted)
             }
+            .padding(.top, 4)
         }
-        .tint(Theme.accent)
+        .padding(.vertical, 24)
     }
 }

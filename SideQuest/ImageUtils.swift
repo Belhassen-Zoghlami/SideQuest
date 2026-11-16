@@ -1,6 +1,8 @@
 import UIKit
 
 enum ImageUtils: Sendable {
+    private static let cache = NSCache<NSString, UIImage>()
+
     static func compress(_ data: Data, maxDimension: CGFloat = 900, quality: CGFloat = 0.65) -> Data? {
         guard let image = UIImage(data: data) else { return nil }
 
@@ -16,5 +18,53 @@ enum ImageUtils: Sendable {
         }
 
         return resized.jpegData(compressionQuality: quality)
+    }
+
+    private static var avatarsDirectory: URL {
+        let paths = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
+        let dir = paths[0].appendingPathComponent("avatars", isDirectory: true)
+        if !FileManager.default.fileExists(atPath: dir.path) {
+            try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        }
+        return dir
+    }
+
+    @discardableResult
+    static func saveLocally(data: Data, filename: String) -> String {
+        let fileURL = avatarsDirectory.appendingPathComponent(filename)
+        do {
+            try data.write(to: fileURL, options: .atomic)
+            let identifier = "local://\(filename)"
+            if let img = UIImage(data: data) {
+                cache.setObject(img, forKey: identifier as NSString)
+            }
+            return identifier
+        } catch {
+            print("Failed to save image locally: \(error)")
+            return ""
+        }
+    }
+
+    static func loadLocalImage(_ identifier: String) -> UIImage? {
+        guard !identifier.isEmpty else { return nil }
+        if let cached = cache.object(forKey: identifier as NSString) {
+            return cached
+        }
+
+        var filePath: String?
+        if identifier.hasPrefix("local://") {
+            let filename = String(identifier.dropFirst("local://".count))
+            let fileURL = avatarsDirectory.appendingPathComponent(filename)
+            filePath = fileURL.path
+        } else if identifier.hasPrefix("file://"), let url = URL(string: identifier) {
+            filePath = url.path
+        }
+
+        if let path = filePath, FileManager.default.fileExists(atPath: path),
+           let img = UIImage(contentsOfFile: path) {
+            cache.setObject(img, forKey: identifier as NSString)
+            return img
+        }
+        return nil
     }
 }

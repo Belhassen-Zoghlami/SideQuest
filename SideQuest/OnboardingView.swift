@@ -12,6 +12,8 @@ struct OnboardingView: View {
     @State private var quest = ""
     @State private var phone = ""
     @State private var photoItem: PhotosPickerItem?
+    @State private var selectedImage: UIImage?
+    @State private var selectedImageData: Data?
     @State private var isSaving = false
     @State private var errorMessage: String?
 
@@ -21,23 +23,23 @@ struct OnboardingView: View {
         NavigationStack {
             Form {
                 Section {
-                    let hasPhoto = photoItem != nil
+                    let hasPhoto = selectedImage != nil || photoItem != nil
                     HStack(spacing: 16) {
-                        AvatarView(name: name, urlString: "", size: 68)
+                        AvatarView(name: name, urlString: "", image: selectedImage, size: 68)
 
                         VStack(alignment: .leading, spacing: 3) {
                             Text(name.isEmpty ? "Your photo" : name)
                                 .font(.headline)
                                 .lineLimit(1)
-                            Text("Shown on your card")
+                            Text(hasPhoto ? "Photo selected" : "Shown on your card")
                                 .font(.footnote)
-                                .foregroundStyle(Theme.muted)
+                                .foregroundStyle(hasPhoto ? Theme.accent : Theme.muted)
                         }
 
                         Spacer(minLength: 8)
 
                         PhotosPicker(selection: $photoItem, matching: .images) {
-                            Image(systemName: hasPhoto ? "arrow.triangle.2.circlepath" : "plus")
+                            Image(systemName: hasPhoto ? "checkmark.circle.fill" : "plus")
                                 .font(.system(size: 15, weight: .semibold))
                                 .foregroundStyle(Theme.accent)
                                 .frame(width: 32, height: 32)
@@ -83,7 +85,7 @@ struct OnboardingView: View {
                     TextField("e.g. Need a study buddy for Data Structures, Tue 4pm", text: $quest, axis: .vertical)
                         .lineLimit(2...4)
                 } header: {
-                    Text("Your side quest")
+                    Text("Your side quest (optional)")
                 } footer: {
                     Text("\(quest.count)/80")
                         .foregroundStyle(quest.count > 80 ? Theme.accent : Theme.muted)
@@ -129,13 +131,26 @@ struct OnboardingView: View {
             .navigationTitle("Create your card")
             .navigationBarTitleDisplayMode(.large)
             .tint(Theme.accent)
+            .onChange(of: photoItem) { _, newItem in
+                guard let newItem else {
+                    selectedImage = nil
+                    selectedImageData = nil
+                    return
+                }
+                Task {
+                    if let data = try? await newItem.loadTransferable(type: Data.self),
+                       let uiImage = UIImage(data: data) {
+                        selectedImage = uiImage
+                        selectedImageData = data
+                    }
+                }
+            }
         }
     }
 
     private var canSave: Bool {
         !name.trimmingCharacters(in: .whitespaces).isEmpty
             && !major.trimmingCharacters(in: .whitespaces).isEmpty
-            && !quest.trimmingCharacters(in: .whitespaces).isEmpty
             && !phone.trimmingCharacters(in: .whitespaces).isEmpty
             && !selected.isEmpty
     }
@@ -164,13 +179,16 @@ struct OnboardingView: View {
             student.createdAt = Date()
             student.lastActive = Date()
 
-            if let photoItem,
-               let data = try await photoItem.loadTransferable(type: Data.self),
-               let compressed = ImageUtils.compress(data) {
+            var dataToUpload = selectedImageData
+            if dataToUpload == nil, let photoItem {
+                dataToUpload = try? await photoItem.loadTransferable(type: Data.self)
+            }
+            if let dataToUpload,
+               let compressed = ImageUtils.compress(dataToUpload) {
                 do {
                     student.photoURL = try await service.uploadAvatar(uid: uid, data: compressed)
                 } catch {
-                    // Graceful fallback to initials placeholder if storage is unconfigured
+                    print("Avatar upload error: \(error)")
                 }
             }
 

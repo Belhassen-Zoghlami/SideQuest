@@ -9,30 +9,37 @@ import SwiftUI
 import FirebaseAuth
 struct ContentView: View {
     @Environment(AppState.self) private var appState
+    @State private var isSplashActive = true
+
     var body: some View {
-        Group {
-            if appState.authUser == nil {
-                AuthView()
-            } else if appState.isLoadingProfile {
-                ZStack {
-                    Theme.surface.ignoresSafeArea()
-                    VStack(spacing: 12) {
-                        ProgressView()
-                        Text("Loading your quests…")
-                            .font(.footnote)
-                            .foregroundStyle(Theme.muted)
-                    }
+        ZStack {
+            Group {
+                if appState.authUser == nil {
+                    AuthView()
+                } else if appState.isLoadingProfile {
+                    SplashScreenView()
+                } else if appState.myProfile == nil {
+                    OnboardingView()
+                } else {
+                    MainTabView()
                 }
-            } else if appState.myProfile == nil {
-                OnboardingView()
-            } else {
-                MainTabView()
+            }
+
+            if isSplashActive {
+                SplashScreenView()
+                    .transition(.opacity)
+                    .zIndex(1)
             }
         }
         .task {
             appState.start()
+            try? await Task.sleep(nanoseconds: 1_200_000_000)
+            withAnimation(.easeInOut(duration: 0.35)) {
+                isSplashActive = false
+            }
         }
-        .animation(.easeInOut(duration: 0.2), value: appState.authUser?.uid)    }
+        .animation(.easeInOut(duration: 0.25), value: appState.authUser?.uid)
+    }
 }
 struct MainTabView: View {
     @State private var selection: Tab = .deck

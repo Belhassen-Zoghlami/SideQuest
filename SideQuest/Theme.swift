@@ -2,17 +2,21 @@ import SwiftUI
 import UIKit
 
 enum Theme: Sendable {
-    static let accent = Color(red: 0.96, green: 0.36, blue: 0.30)
-    static let accentDeep = Color(red: 0.88, green: 0.27, blue: 0.23)
-    static let accentSoft = Color(red: 1.00, green: 0.70, blue: 0.56)
-    static let butter = Color(red: 1.00, green: 0.77, blue: 0.42)
-    static let green = Color(red: 0.18, green: 0.75, blue: 0.44)
-    static let red = Color(red: 0.93, green: 0.25, blue: 0.22)
+    // Primary brand colors matched to the logo (Electric Blue -> Indigo -> Purple)
+    static let accent = Color(red: 0.32, green: 0.28, blue: 0.98)        // #5247FA - Vibrant Electric Indigo
+    static let accentDeep = Color(red: 0.18, green: 0.23, blue: 0.96)    // #2F3AFC - Electric Royal Blue
+    static let accentSoft = Color(red: 0.62, green: 0.38, blue: 0.98)    // #9E61FB - Electric Violet / Orchid
+    static let butter = Color(red: 0.25, green: 0.85, blue: 0.82)        // #40D9D1 - Electric Cyan Highlight
+    static let green = Color(red: 0.18, green: 0.78, blue: 0.52)
+    static let red = Color(red: 0.95, green: 0.28, blue: 0.35)
 
     static let accentGradient = LinearGradient(
-        colors: [accent, accentDeep],
-        startPoint: .top,
-        endPoint: .bottom
+        colors: [
+            Color(red: 0.18, green: 0.23, blue: 0.96),
+            Color(red: 0.60, green: 0.36, blue: 0.98)
+        ],
+        startPoint: .topLeading,
+        endPoint: .bottomTrailing
     )
 
     static let ink = Color(.label)
@@ -21,26 +25,26 @@ enum Theme: Sendable {
 
     static let surface = Color(uiColor: UIColor { trait in
         trait.userInterfaceStyle == .dark
-            ? UIColor(red: 0.09, green: 0.08, blue: 0.10, alpha: 1)
-            : UIColor(red: 0.98, green: 0.96, blue: 0.95, alpha: 1)
+            ? UIColor(red: 0.08, green: 0.08, blue: 0.12, alpha: 1)
+            : UIColor(red: 0.97, green: 0.97, blue: 0.99, alpha: 1)
     })
 
     static let card = Color(uiColor: UIColor { trait in
         trait.userInterfaceStyle == .dark
-            ? UIColor(red: 0.14, green: 0.13, blue: 0.15, alpha: 1)
+            ? UIColor(red: 0.13, green: 0.13, blue: 0.19, alpha: 1)
             : .white
     })
 
     static let fill = Color(uiColor: UIColor { trait in
         trait.userInterfaceStyle == .dark
             ? UIColor(white: 1, alpha: 0.10)
-            : UIColor(red: 0.48, green: 0.42, blue: 0.40, alpha: 0.10)
+            : UIColor(red: 0.35, green: 0.32, blue: 0.50, alpha: 0.08)
     })
 
     static let hairline = Color(.separator)
 
-    static let cardShadow = Color.black.opacity(0.12)
-    static let warmShadow = Color(red: 0.55, green: 0.22, blue: 0.16).opacity(0.18)
+    static let cardShadow = Color.black.opacity(0.10)
+    static let warmShadow = Color(red: 0.25, green: 0.22, blue: 0.85).opacity(0.18)
     static let corner: CGFloat = 24
     static let control: CGFloat = 14
 }

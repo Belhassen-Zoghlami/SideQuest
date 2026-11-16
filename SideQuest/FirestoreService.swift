@@ -116,7 +116,7 @@ final class FirebaseService {
             participants: [swiper.id, event.hostId],
             contacts: [
                 swiper.id: swiperPhone,
-                event.hostId: event.hostContact.isEmpty ? "Contact host in app" : event.hostContact
+                event.hostId: event.hostContact
             ],
             names: [
                 swiper.id: swiper.displayName,
@@ -159,11 +159,19 @@ final class FirebaseService {
     // MARK: - Media & Seed
 
     func uploadAvatar(uid: String, data: Data) async throws -> String {
-        let reference = storage.reference().child("avatars/\(uid)")
-        let metadata = StorageMetadata()
-        metadata.contentType = "image/jpeg"
-        _ = try await reference.putDataAsync(data, metadata: metadata)
-        return try await reference.downloadURL().absoluteString
+        let localIdentifier = ImageUtils.saveLocally(data: data, filename: "avatar_\(uid).jpg")
+
+        do {
+            let timestamp = Int(Date().timeIntervalSince1970)
+            let reference = storage.reference().child("avatars/\(uid)_\(timestamp).jpg")
+            let metadata = StorageMetadata()
+            metadata.contentType = "image/jpeg"
+            _ = try await reference.putDataAsync(data, metadata: metadata)
+            return try await reference.downloadURL().absoluteString
+        } catch {
+            print("Firebase Storage upload error (\(error.localizedDescription)). Using local image persistence.")
+            return localIdentifier
+        }
     }
 
     func seedDemoEvents(for me: Student) async throws -> Int {

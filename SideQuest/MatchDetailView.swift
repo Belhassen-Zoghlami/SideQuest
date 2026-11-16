@@ -6,6 +6,8 @@ struct MatchDetailView: View {
 
     @Environment(AppState.self) private var appState
     @Environment(\.openURL) private var openURL
+    @State private var alertMessage: String?
+    @State private var showAlert = false
 
     private var myUID: String {
         appState.myProfile?.id ?? ""
@@ -98,7 +100,7 @@ struct MatchDetailView: View {
         VStack(alignment: .leading, spacing: 14) {
             SectionLabel(title: "Contact Information")
 
-            if otherPhone.isEmpty {
+            if !hasValidPhone {
                 Text("They haven't shared a number yet.")
                     .font(.subheadline)
                     .foregroundStyle(Theme.muted)
@@ -110,25 +112,26 @@ struct MatchDetailView: View {
 
                 HStack(spacing: 8) {
                     actionButton(icon: "doc.on.doc", title: "Copy") {
-                        UIPasteboard.general.string = otherPhone
+                        handleCopy()
                     }
 
                     actionButton(icon: "phone.fill", title: "Call") {
-                        if let url = URL(string: "tel:\(digits)") {
-                            openURL(url)
-                        }
+                        handleCall()
                     }
 
                     actionButton(icon: "message.fill", title: "Text") {
-                        if let url = URL(string: "sms:\(digits)") {
-                            openURL(url)
-                        }
+                        handleText()
                     }
                 }
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .cardSurface()
+        .alert("Contact", isPresented: $showAlert) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text(alertMessage ?? "")
+        }
     }
 
     private func actionButton(icon: String, title: String, action: @escaping () -> Void) -> some View {
@@ -150,6 +153,57 @@ struct MatchDetailView: View {
     }
 
     private var digits: String {
-        otherPhone.filter { $0.isNumber || $0 == "+" }
+        let raw = otherPhone.filter { $0.isNumber || $0 == "+" }
+        if raw.hasPrefix("+1555") && raw.count == 9 {
+            return "+1555010" + String(raw.suffix(4))
+        }
+        return raw
+    }
+
+    private var hasValidPhone: Bool {
+        let numericOnly = digits.filter { $0.isNumber }
+        return numericOnly.count >= 7
+    }
+
+    private func handleCall() {
+        guard hasValidPhone else {
+            alertMessage = "No valid phone number available to call."
+            showAlert = true
+            return
+        }
+
+        let phoneDigits = digits
+        if let promptURL = URL(string: "telprompt:\(phoneDigits)"), UIApplication.shared.canOpenURL(promptURL) {
+            UIApplication.shared.open(promptURL)
+        } else if let telURL = URL(string: "tel:\(phoneDigits)"), UIApplication.shared.canOpenURL(telURL) {
+            UIApplication.shared.open(telURL)
+        } else {
+            UIPasteboard.general.string = otherPhone
+            alertMessage = "Calling is not supported on this device/simulator. The phone number (\(otherPhone)) has been copied to your clipboard."
+            showAlert = true
+        }
+    }
+
+    private func handleText() {
+        guard hasValidPhone else {
+            alertMessage = "No valid phone number available to message."
+            showAlert = true
+            return
+        }
+
+        let phoneDigits = digits
+        if let smsURL = URL(string: "sms:\(phoneDigits)"), UIApplication.shared.canOpenURL(smsURL) {
+            UIApplication.shared.open(smsURL)
+        } else {
+            UIPasteboard.general.string = otherPhone
+            alertMessage = "Messaging is not supported on this device/simulator. The phone number (\(otherPhone)) has been copied to your clipboard."
+            showAlert = true
+        }
+    }
+
+    private func handleCopy() {
+        UIPasteboard.general.string = otherPhone
+        alertMessage = "Phone number copied to clipboard!"
+        showAlert = true
     }
 }

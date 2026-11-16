@@ -13,6 +13,8 @@ struct ProfileView: View {
     @State private var quest = ""
     @State private var phone = ""
     @State private var photoItem: PhotosPickerItem?
+    @State private var selectedImage: UIImage?
+    @State private var isUploadingPhoto = false
     @State private var isSaving = false
     @State private var isSeeding = false
     @State private var message: String?
@@ -54,20 +56,36 @@ struct ProfileView: View {
                     Task { await loadMyEvents() }
                 }
             }
+            .onChange(of: photoItem) { _, newItem in
+                guard let newItem else { return }
+                Task {
+                    await handlePhotoSelected(newItem)
+                }
+            }
         }
     }
 
     private var avatarHeader: some View {
         Section {
-            let hasPhoto = photoItem != nil
+            let hasPhoto = selectedImage != nil || !(appState.myProfile?.photoURL ?? "").isEmpty
             VStack(spacing: 12) {
-                AvatarView(
-                    name: appState.myProfile?.displayName ?? name,
-                    urlString: appState.myProfile?.photoURL ?? "",
-                    size: 88
-                )
-                .overlay(Circle().stroke(.white, lineWidth: 4))
-                .shadow(color: Theme.cardShadow, radius: 14, x: 0, y: 6)
+                ZStack {
+                    AvatarView(
+                        name: appState.myProfile?.displayName ?? name,
+                        urlString: appState.myProfile?.photoURL ?? "",
+                        image: selectedImage,
+                        size: 88
+                    )
+                    .overlay(Circle().stroke(.white, lineWidth: 4))
+                    .shadow(color: Theme.cardShadow, radius: 14, x: 0, y: 6)
+
+                    if isUploadingPhoto {
+                        ProgressView()
+                            .tint(.white)
+                            .frame(width: 88, height: 88)
+                            .background(Color.black.opacity(0.35), in: Circle())
+                    }
+                }
 
                 VStack(spacing: 2) {
                     Text(appState.myProfile?.displayName ?? name)
@@ -80,10 +98,11 @@ struct ProfileView: View {
                 }
 
                 PhotosPicker(selection: $photoItem, matching: .images) {
-                    Text(hasPhoto ? "New photo selected" : "Change photo")
+                    Text(isUploadingPhoto ? "Uploading photo…" : (hasPhoto ? "Change photo" : "Add photo"))
                         .font(.subheadline.weight(.medium))
                         .foregroundStyle(Theme.accent)
                 }
+                .disabled(isUploadingPhoto)
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 10)
@@ -272,6 +291,34 @@ struct ProfileView: View {
         }
     }
 
+    private func handlePhotoSelected(_ item: PhotosPickerItem) async {
+        isUploadingPhoto = true
+        message = nil
+        do {
+            guard let data = try await item.loadTransferable(type: Data.self),
+                  let uiImage = UIImage(data: data) else {
+                isUploadingPhoto = false
+                return
+            }
+            selectedImage = uiImage
+
+            guard let compressed = ImageUtils.compress(data),
+                  var student = appState.myProfile else {
+                isUploadingPhoto = false
+                return
+            }
+
+            let newURL = try await service.uploadAvatar(uid: student.id, data: compressed)
+            student.photoURL = newURL
+            try await service.saveProfile(student)
+            appState.myProfile = student
+            message = "Profile photo updated!"
+        } catch {
+            message = "Failed to update photo: \(error.localizedDescription)"
+        }
+        isUploadingPhoto = false
+    }
+
     private func save() async {
         guard var student = appState.myProfile else { return }
         isSaving = true
@@ -286,13 +333,9 @@ struct ProfileView: View {
             student.lastActive = Date()
 
             if let photoItem,
-               let data = try await photoItem.loadTransferable(type: Data.self),
+               let data = try? await photoItem.loadTransferable(type: Data.self),
                let compressed = ImageUtils.compress(data) {
-                do {
-                    student.photoURL = try await service.uploadAvatar(uid: student.id, data: compressed)
-                } catch {
-                    // Graceful fallback if storage is unconfigured
-                }
+                student.photoURL = try await service.uploadAvatar(uid: student.id, data: compressed)
             }
 
             let trimmedPhone = phone.trimmingCharacters(in: .whitespaces)
@@ -302,6 +345,7 @@ struct ProfileView: View {
             appState.myProfile = student
             appState.myPhone = trimmedPhone
             photoItem = nil
+            selectedImage = nil
             message = "Profile saved successfully."
         } catch {
             message = error.localizedDescription

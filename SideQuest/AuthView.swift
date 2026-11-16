@@ -83,22 +83,16 @@ struct AuthView: View {
 
     private var header: some View {
         VStack(spacing: 18) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 20, style: .continuous)
-                    .fill(
-                        LinearGradient(
-                            colors: [Theme.accent, Theme.accentDeep],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .frame(width: 76, height: 76)
-                    .shadow(color: Theme.accent.opacity(0.35), radius: 18, x: 0, y: 10)
-
-                Image(systemName: "square.stack.3d.up.fill")
-                    .font(.system(size: 34, weight: .semibold))
-                    .foregroundStyle(.white)
-            }
+            Image("AppLogo")
+                .resizable()
+                .scaledToFit()
+                .frame(width: 80, height: 80)
+                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                        .strokeBorder(Color.white.opacity(0.3), lineWidth: 1.5)
+                )
+                .shadow(color: Theme.accent.opacity(0.35), radius: 18, x: 0, y: 10)
 
             VStack(spacing: 8) {
                 Text("SideQuest")

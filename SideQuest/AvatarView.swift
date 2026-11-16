@@ -3,11 +3,20 @@ import SwiftUI
 struct AvatarView: View {
     let name: String
     let urlString: String
+    var image: UIImage? = nil
     var size: CGFloat = 56
 
     var body: some View {
         Group {
-            if let url = URL(string: urlString), !urlString.isEmpty {
+            if let image {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFill()
+            } else if let localImage = ImageUtils.loadLocalImage(urlString) {
+                Image(uiImage: localImage)
+                    .resizable()
+                    .scaledToFill()
+            } else if let url = URL(string: urlString), !urlString.isEmpty {
                 AsyncImage(url: url) { phase in
                     switch phase {
                     case .success(let image):
